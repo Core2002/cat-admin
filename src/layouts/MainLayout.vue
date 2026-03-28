@@ -30,6 +30,18 @@ import EssentialLink, { type EssentialLinkProps } from 'components/EssentialLink
 
 const linksList: EssentialLinkProps[] = [
   {
+    title: '首页',
+    caption: '首页',
+    icon: 'home',
+    link: '/',
+  },
+  {
+    title: '数据管理',
+    caption: '数据密集型页面',
+    icon: 'table_chart',
+    link: '/data',
+  },
+  {
     title: 'Docs',
     caption: 'quasar.dev',
     icon: 'school',

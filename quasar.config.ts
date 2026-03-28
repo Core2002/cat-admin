@@ -11,7 +11,7 @@ export default defineConfig((/* ctx */) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [],
+    boot: ['pinia', 'auth'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
     css: ['app.scss'],
@@ -82,10 +82,19 @@ export default defineConfig((/* ctx */) => {
       // https: true,
       open: true, // opens browser window automatically
       proxy: {
+        // 所有请求都通过网关 (端口 5000)
+        // 网关会自动将 /api 转发到数据服务器 (端口 5100)
         '/api': {
-          target: 'http://localhost:5100',
+          target: 'http://localhost:5000',
           changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/api/, ''),
+        },
+        '/webauthn': {
+          target: 'http://localhost:5000',
+          changeOrigin: true,
+        },
+        '/profile': {
+          target: 'http://localhost:5000',
+          changeOrigin: true,
         },
       },
     },
@@ -105,7 +114,7 @@ export default defineConfig((/* ctx */) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: [],
+      plugins: ['Notify', 'Dialog'],
     },
 
     // animations: 'all', // --- includes all animations

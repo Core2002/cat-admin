@@ -1,12 +1,19 @@
 const API_BASE = '/api';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem('auth_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...((options?.headers as Record<string, string>) || {}),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE}${url}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
     ...options,
+    headers,
   });
 
   if (!response.ok) {
@@ -40,7 +47,7 @@ export interface Cat {
 
 export const catApi = {
   list: (page = 1, pageSize = 10) =>
-    request<PaginatedResponse<Cat>>(`/cats/page?page=${page}&pageSize=${pageSize}`),
+    request<PaginatedResponse<Cat>>(`/cats/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<Cat>(`/cats/${id}`),
   create: (cat: Omit<Cat, 'cat_id' | 'created_at'>) =>
     request<Cat>('/cats', { method: 'POST', body: JSON.stringify(cat) }),
@@ -60,7 +67,7 @@ export interface Site {
 
 export const siteApi = {
   list: (page = 1, pageSize = 10) =>
-    request<PaginatedResponse<Site>>(`/sites/page?page=${page}&pageSize=${pageSize}`),
+    request<PaginatedResponse<Site>>(`/sites/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<Site>(`/sites/${id}`),
   create: (site: Omit<Site, 'site_id' | 'created_at'>) =>
     request<Site>('/sites', { method: 'POST', body: JSON.stringify(site) }),
@@ -97,7 +104,7 @@ export const ACTION_TYPES = [
 
 export const catActionApi = {
   list: (page = 1, pageSize = 10) =>
-    request<PaginatedResponse<CatAction>>(`/cat-actions/page?page=${page}&pageSize=${pageSize}`),
+    request<PaginatedResponse<CatAction>>(`/cat-actions/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<CatAction>(`/cat-actions/${id}`),
   getByCat: (catId: number) => request<CatAction[]>(`/cat-actions/cat/${catId}`),
   getBySite: (siteId: number) => request<CatAction[]>(`/cat-actions/site/${siteId}`),
@@ -124,7 +131,7 @@ export const EVENT_TYPES = ['生病', '受伤', '怀孕', '分娩', '死亡', '�
 
 export const catEventApi = {
   list: (page = 1, pageSize = 10) =>
-    request<PaginatedResponse<CatEvent>>(`/cat-events/page?page=${page}&pageSize=${pageSize}`),
+    request<PaginatedResponse<CatEvent>>(`/cat-events/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<CatEvent>(`/cat-events/${id}`),
   getByCat: (catId: number) => request<CatEvent[]>(`/cat-events/cat/${catId}`),
   getBySite: (siteId: number) => request<CatEvent[]>(`/cat-events/site/${siteId}`),
@@ -147,7 +154,7 @@ export interface CatFSM {
 
 export const catFsmApi = {
   list: (page = 1, pageSize = 10) =>
-    request<PaginatedResponse<CatFSM>>(`/cat-fsms/page?page=${page}&pageSize=${pageSize}`),
+    request<PaginatedResponse<CatFSM>>(`/cat-fsms/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<CatFSM>(`/cat-fsms/${id}`),
   getBySite: (siteId: number) => request<CatFSM[]>(`/cat-fsms/site/${siteId}`),
   create: (fsm: Omit<CatFSM, 'id'>) =>
@@ -184,7 +191,7 @@ export interface SiteFSM {
 
 export const siteFsmApi = {
   list: (page = 1, pageSize = 10) =>
-    request<PaginatedResponse<SiteFSM>>(`/site-fsms/page?page=${page}&pageSize=${pageSize}`),
+    request<PaginatedResponse<SiteFSM>>(`/site-fsms/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<SiteFSM>(`/site-fsms/${id}`),
   getBySite: (siteId: number) => request<SiteFSM>(`/site-fsms/site/${siteId}`),
   create: (fsm: Omit<SiteFSM, 'id'>) =>

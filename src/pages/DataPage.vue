@@ -1,126 +1,139 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="row full-height">
-      <!-- 折叠按钮 -->
-      <div class="sidebar-toggle" :class="{ collapsed: sidebarCollapsed }">
+  <q-page class="row no-wrap q-pa-md">
+    <!-- 左侧数据表列表 -->
+    <transition name="slide">
+      <q-card
+        v-show="sidebarOpen"
+        flat
+        bordered
+        class="sidebar-card"
+      >
+        <q-toolbar class="bg-grey-1">
+          <q-toolbar-title class="text-subtitle2 text-grey">数据表</q-toolbar-title>
+        </q-toolbar>
+        <q-separator />
+        <q-scroll-area style="height: calc(100vh - 250px)">
+          <q-list dense padding>
+            <q-item
+              v-for="table in tables"
+              :key="table.name"
+              clickable
+              :active="selectedTable === table.name"
+              @click="onSelectTable(table.name)"
+              :class="{ 'text-primary': selectedTable === table.name }"
+            >
+              <q-item-section avatar>
+                <q-icon :name="table.icon" size="sm" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ table.label }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-badge :label="table.count" color="grey-4" text-color="grey-8" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-scroll-area>
+      </q-card>
+    </transition>
+
+    <!-- 右侧内容区 -->
+    <q-card flat class="col content-card">
+      <!-- Header -->
+      <q-toolbar>
         <q-btn
           flat
           round
           dense
-          :icon="sidebarCollapsed ? 'chevron_right' : 'chevron_left'"
-          @click="sidebarCollapsed = !sidebarCollapsed"
+          :icon="sidebarOpen ? 'chevron_left' : 'chevron_right'"
+          @click="toggleSidebar"
         >
-          <q-tooltip>{{ sidebarCollapsed ? '展开' : '收起' }}数据表</q-tooltip>
+          <q-tooltip>{{ sidebarOpen ? '收起' : '展开' }}数据表</q-tooltip>
         </q-btn>
-      </div>
+        <q-toolbar-title>
+          <q-item-label class="text-h6">{{ currentTable?.label || '请选择数据表' }}</q-item-label>
+        </q-toolbar-title>
+        <q-btn-group v-if="currentTable" flat>
+          <q-btn flat icon="refresh" label="刷新" @click="loadData" />
+          <q-btn color="primary" icon="add" label="新增" @click="onAdd" />
+        </q-btn-group>
+      </q-toolbar>
 
-      <!-- 左侧数据表列表 -->
-      <transition name="slide">
-        <div v-show="!sidebarCollapsed" class="sidebar-panel bg-grey-1">
-          <div class="q-pa-sm">
-            <div class="text-subtitle2 text-grey q-mb-sm q-px-sm">数据表</div>
-            <q-list dense padding>
-              <q-item
-                v-for="table in tables"
-                :key="table.name"
-                clickable
-                :active="selectedTable === table.name"
-                @click="onSelectTable(table.name)"
-                :class="{ 'text-primary': selectedTable === table.name }"
-              >
-                <q-item-section avatar>
-                  <q-icon :name="table.icon" size="sm" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ table.label }}</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-badge :label="table.count" color="grey-4" text-color="grey-8" />
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </div>
-        </div>
-      </transition>
+      <q-separator />
 
-      <!-- 右侧内容区 -->
-      <div class="col content-panel">
-        <q-scroll-area class="full-height">
-          <div class="q-pa-md">
-            <!-- Header -->
-            <div class="row items-center justify-between q-mb-md">
-              <div class="text-h6">{{ currentTable?.label || '请选择数据表' }}</div>
-              <q-btn-group v-if="currentTable" flat>
-                <q-btn flat icon="refresh" label="刷新" @click="loadData" />
-                <q-btn color="primary" icon="add" label="新增" @click="onAdd" />
-              </q-btn-group>
-            </div>
+      <!-- Table -->
+      <q-scroll-area style="height: calc(100vh - 250px)">
+        <q-table
+          v-if="currentTable"
+          flat
+          bordered
+          :rows="tableData"
+          :columns="currentColumns"
+          :row-key="currentTable?.primaryKey"
+          :loading="loading"
+          :pagination="pagination"
+          :rows-per-page-options="[10, 20, 50, 100]"
+          @request="onRequest"
+          class="q-ma-md"
+        >
+          <!-- Dynamic cell templates -->
+          <template #body-cell="props">
+            <q-td :props="props">
+              <template v-if="isBooleanField()">
+                <q-badge :color="props.value ? 'positive' : 'grey'">
+                  {{ props.value ? '是' : '否' }}
+                </q-badge>
+              </template>
+              <template v-else-if="isTimeField(props.col.name)">
+                {{ formatTime(props.value) }}
+              </template>
+              <template v-else-if="isLongText(props.value)">
+                <q-btn flat dense size="sm" label="查看" @click="showDetail(props.col.label, props.value)" />
+              </template>
+              <template v-else>
+                {{ props.value ?? '-' }}
+              </template>
+            </q-td>
+          </template>
 
-            <!-- Table -->
-            <q-table
-              v-if="currentTable"
-              flat
-              bordered
-              :rows="tableData"
-              :columns="currentColumns"
-              :row-key="currentTable?.primaryKey"
-              :loading="loading"
-              :pagination="pagination"
-              :rows-per-page-options="[10, 20, 50, 100]"
-              @request="onRequest"
-            >
-              <!-- Dynamic cell templates -->
-              <template #body-cell="props">
-                <q-td :props="props">
-                  <template v-if="isBooleanField()">
-                    <q-badge :color="props.value ? 'positive' : 'grey'">
-                      {{ props.value ? '是' : '否' }}
-                  </q-badge>
-                </template>
-                <template v-else-if="isTimeField(props.col.name)">
-                  {{ formatTime(props.value) }}
-                </template>
-                <template v-else-if="isLongText(props.value)">
-                  <q-btn flat dense size="sm" label="查看" @click="showDetail(props.col.label, props.value)" />
-                </template>
-                <template v-else>
-                  {{ props.value ?? '-' }}
-                </template>
-              </q-td>
-            </template>
+          <template #body-cell-actions="props">
+            <q-td :props="props">
+              <q-btn flat round dense icon="edit" size="sm" @click="onEdit(props.row)">
+                <q-tooltip>编辑</q-tooltip>
+              </q-btn>
+              <q-btn flat round dense icon="delete" size="sm" color="negative" @click="onDelete(props.row)">
+                <q-tooltip>删除</q-tooltip>
+              </q-btn>
+            </q-td>
+          </template>
+        </q-table>
 
-            <template #body-cell-actions="props">
-              <q-td :props="props">
-                <q-btn flat round dense icon="edit" size="sm" @click="onEdit(props.row)">
-                  <q-tooltip>编辑</q-tooltip>
-                </q-btn>
-                <q-btn flat round dense icon="delete" size="sm" color="negative" @click="onDelete(props.row)">
-                  <q-tooltip>删除</q-tooltip>
-                </q-btn>
-              </q-td>
-            </template>
-          </q-table>
-
-          <!-- Empty state -->
-          <div v-else class="column items-center justify-center q-py-xl">
+        <!-- Empty state -->
+        <q-card v-else flat bordered class="q-ma-md q-py-xl">
+          <q-card-section class="column items-center justify-center">
             <q-icon name="table_chart" size="80px" color="grey-4" />
-            <div class="text-grey q-mt-md">请从左侧选择要管理的数据表</div>
-          </div>
-          </div>
-        </q-scroll-area>
-      </div>
-    </div>
+            <q-item-label class="text-grey q-mt-md">请从左侧选择要管理的数据表</q-item-label>
+          </q-card-section>
+        </q-card>
+      </q-scroll-area>
+    </q-card>
 
     <!-- Edit Dialog -->
-    <q-dialog v-model="editDialog.show" persistent>
-      <q-card style="min-width: 500px; max-width: 80vw">
+    <q-dialog
+      v-model="editDialog.show"
+      persistent
+      :maximized="$q.screen.lt.md"
+      transition-show="slide-up"
+      transition-hide="slide-down"
+    >
+      <q-card class="q-dialog-plugin" :style="$q.screen.lt.md ? '' : 'min-width: 400px; max-width: 80vw'">
         <q-card-section class="row items-center bg-primary text-white">
-          <div class="text-h6">{{ editDialog.isEdit ? '编辑' : '新增' }}{{ currentTable?.label }}</div>
+          <q-item-label class="text-h6 text-white">{{ editDialog.isEdit ? '编辑' : '新增' }}{{ currentTable?.label }}</q-item-label>
           <q-space />
           <q-btn flat round dense icon="close" v-close-popup />
         </q-card-section>
 
-        <q-card-section class="q-pt-md" style="max-height: 60vh; overflow-y: auto">
+        <q-card-section class="q-pt-md scroll" :style="$q.screen.lt.md ? 'max-height: 70vh' : 'max-height: 60vh'">
           <q-form @submit="onSave" class="q-gutter-md">
             <template v-for="col in editableColumns" :key="col.name">
               <q-input
@@ -187,15 +200,18 @@
     </q-dialog>
 
     <!-- Detail Dialog -->
-    <q-dialog v-model="detailDialog.show">
-      <q-card style="min-width: 400px">
+    <q-dialog
+      v-model="detailDialog.show"
+      :maximized="$q.screen.lt.md"
+    >
+      <q-card class="q-dialog-plugin" :style="$q.screen.lt.md ? '' : 'min-width: 300px; max-width: 80vw'">
         <q-card-section class="row items-center">
-          <div class="text-h6">{{ detailDialog.title }}</div>
+          <q-item-label class="text-h6">{{ detailDialog.title }}</q-item-label>
           <q-space />
           <q-btn flat round dense icon="close" v-close-popup />
         </q-card-section>
-        <q-card-section>
-          <pre class="text-body2" style="white-space: pre-wrap; word-break: break-all">{{ detailDialog.content }}</pre>
+        <q-card-section class="scroll">
+          <q-item-label class="text-body2" style="white-space: pre-wrap; word-break: break-all">{{ detailDialog.content }}</q-item-label>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -242,7 +258,7 @@ interface TableDef {
   count: number;
 }
 
-const sidebarCollapsed = ref(false);
+const sidebarOpen = ref(true);
 const selectedTable = ref<string | null>(null);
 const tableData = ref<TableRow[]>([]);
 const loading = ref(false);
@@ -390,6 +406,11 @@ function onSelectTable(tableName: string) {
   selectedTable.value = tableName;
   pagination.value.page = 1;
   void loadData();
+}
+
+// Toggle sidebar
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value;
 }
 
 // Load data
@@ -603,37 +624,14 @@ void loadCounts();
 </script>
 
 <style scoped>
-.full-height {
-  height: calc(100vh - 100px);
-  position: relative;
-}
-
-.sidebar-toggle {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  background: white;
-  border-radius: 0 8px 8px 0;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  transition: left 0.3s ease;
-}
-
-.sidebar-toggle.collapsed {
-  left: 0;
-}
-
-.sidebar-panel {
-  width: 240px;
+.sidebar-card {
   min-width: 240px;
-  border-right: 1px solid rgba(0, 0, 0, 0.12);
-  overflow-y: auto;
+  max-width: 240px;
+  margin-right: 8px;
 }
 
-.content-panel {
+.content-card {
   min-width: 0;
-  padding-left: 40px;
 }
 
 .slide-enter-active,
@@ -643,8 +641,7 @@ void loadCounts();
 
 .slide-enter-from,
 .slide-leave-to {
-  width: 0;
-  min-width: 0;
+  transform: translateX(-100%);
   opacity: 0;
 }
 </style>

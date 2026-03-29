@@ -10,12 +10,18 @@ interface RouteMeta {
 export default defineBoot(({ router }) => {
   const authStore = useAuthStore();
 
+  // 初始化时验证 token
+  const authPromise = authStore.fetchProfile();
+
   router.beforeEach(
-    (
+    async (
       to: RouteLocationNormalized & { matched: Array<{ meta: RouteMeta }> },
       _from: RouteLocationNormalized,
       next: NavigationGuardNext
     ) => {
+      // 等待初始化完成
+      await authPromise;
+
       const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
       const isGuestRoute = to.matched.some((record) => record.meta.guest);
 

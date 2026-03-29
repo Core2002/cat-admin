@@ -16,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(getStoredUser());
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const initialized = ref(false);
 
   const isAuthenticated = computed(() => !!token.value && !!user.value);
   const isAdmin = computed(() => user.value?.role === 'admin');
@@ -52,14 +53,21 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchProfile() {
-    if (!token.value) return;
+    const storedToken = getStoredToken();
+    if (!storedToken) {
+      initialized.value = true;
+      return;
+    }
 
     try {
-      const result = await authApi.getProfile(token.value);
+      const result = await authApi.getProfile(storedToken);
+      token.value = storedToken;
       user.value = result.user;
     } catch {
-      // Token 可能已过期
+      // Token 已过期或无效
       logout();
+    } finally {
+      initialized.value = true;
     }
   }
 
@@ -74,6 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     loading,
     error,
+    initialized,
     isAuthenticated,
     isAdmin,
     login,

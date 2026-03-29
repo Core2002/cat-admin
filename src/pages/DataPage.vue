@@ -94,12 +94,11 @@
                 <span class="editable-cell cursor-pointer" @click.stop>
                   {{ props.value ?? '-' }}
                   <q-popup-edit
-                    v-model="popupEdit.value"
+                    :model-value="props.value"
                     :title="props.col.label"
                     buttons
                     v-slot="scope"
-                    @show="onPopupShow(props.row, props.col.name, props.value)"
-                    @save="onPopupSave(props.row, props.col.name)"
+                    @save="onPopupSave(props.row, props.col.name, $event)"
                   >
                     <q-input
                       v-if="getColumnType(props.col.name) === 'string'"
@@ -215,7 +214,8 @@
             <template v-for="col in editableColumns" :key="col.name">
               <q-input
                 v-if="col.type === 'string'"
-                v-model="editDialog.form[col.name] as string"
+                :model-value="editDialog.form[col.name] as string"
+                @update:model-value="setFormField(col.name, $event)"
                 :label="col.label"
                 outlined
                 dense
@@ -223,7 +223,8 @@
               />
               <q-input
                 v-else-if="col.type === 'number'"
-                v-model.number="editDialog.form[col.name] as number"
+                :model-value="editDialog.form[col.name] as number"
+                @update:model-value="setFormField(col.name, $event)"
                 :label="col.label"
                 outlined
                 dense
@@ -232,17 +233,20 @@
               />
               <q-select
                 v-else-if="col.type === 'select'"
-                v-model="editDialog.form[col.name] as string"
+                :model-value="editDialog.form[col.name] as string"
+                @update:model-value="setFormField(col.name, $event)"
                 :label="col.label"
                 :options="col.options || []"
                 outlined
                 dense
                 emit-value
                 map-options
+                :rules="col.required ? [(v) => v !== null && v !== undefined && v !== '' || '必填'] : []"
               />
               <q-input
                 v-else-if="col.type === 'textarea'"
-                v-model="editDialog.form[col.name] as string"
+                :model-value="editDialog.form[col.name] as string"
+                @update:model-value="setFormField(col.name, $event)"
                 :label="col.label"
                 outlined
                 dense
@@ -251,7 +255,8 @@
               />
               <q-input
                 v-else-if="col.type === 'url'"
-                v-model="editDialog.form[col.name] as string"
+                :model-value="editDialog.form[col.name] as string"
+                @update:model-value="setFormField(col.name, $event)"
                 :label="col.label"
                 outlined
                 dense
@@ -259,7 +264,8 @@
               />
               <q-input
                 v-else-if="col.type === 'phone'"
-                v-model="editDialog.form[col.name] as string"
+                :model-value="editDialog.form[col.name] as string"
+                @update:model-value="setFormField(col.name, $event)"
                 :label="col.label"
                 outlined
                 dense
@@ -358,11 +364,11 @@ const tables = ref<TableDef[]>([
     columns: [
       { name: 'cat_id', label: 'ID', field: 'cat_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'cat_name', label: '名称', field: 'cat_name', align: 'left', sortable: true, type: 'string', required: true, editable: true },
-      { name: 'cat_type', label: '品种', field: 'cat_type', align: 'left', type: 'string', editable: true },
+      { name: 'cat_type', label: '品种', field: 'cat_type', align: 'left', type: 'string', required: true, editable: true },
       { name: 'cat_gender', label: '性别', field: 'cat_gender', align: 'center', type: 'select', options: ['公', '母'], required: true, editable: true },
-      { name: 'cat_photo_uri', label: '照片', field: 'cat_photo_uri', type: 'url', editable: true },
-      { name: 'master_name', label: '主人', field: 'master_name', align: 'left', type: 'string', editable: true },
-      { name: 'master_phone_number', label: '主人电话', field: 'master_phone_number', type: 'phone', editable: true },
+      { name: 'cat_photo_uri', label: '照片', field: 'cat_photo_uri', type: 'url', required: true, editable: true },
+      { name: 'master_name', label: '主人', field: 'master_name', align: 'left', type: 'string', required: true, editable: true },
+      { name: 'master_phone_number', label: '主人电话', field: 'master_phone_number', type: 'phone', required: true, editable: true },
       { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
     ],
   },
@@ -478,12 +484,7 @@ const detailDialog = ref({
   content: '',
 });
 
-// Popup Edit
-const popupEdit = ref({
-  row: null as TableRow | null,
-  field: '',
-  value: null as unknown,
-});
+// Popup Edit (state no longer needed, values passed directly)
 
 // Select table
 function onSelectTable(tableName: string) {
@@ -568,6 +569,11 @@ function onRequest(props: {
 }) {
   pagination.value = { ...pagination.value, ...props.pagination };
   void loadData();
+}
+
+// Form field setter for reliable reactivity
+function setFormField(field: string, value: unknown) {
+  editDialog.value.form[field] = value;
 }
 
 // CRUD Operations
@@ -733,16 +739,11 @@ function getColumnOptions(name: string): string[] {
   return col?.options || [];
 }
 
-function onPopupShow(row: TableRow, field: string, value: unknown) {
-  popupEdit.value = { row, field, value };
-}
-
-async function onPopupSave(row: TableRow, field: string) {
-  if (!selectedTable.value || !currentTable.value || !popupEdit.value.row) return;
+async function onPopupSave(row: TableRow, field: string, newValue: unknown) {
+  if (!selectedTable.value || !currentTable.value) return;
 
   const primaryKey = currentTable.value.primaryKey;
   const id = (row as unknown as Record<string, number>)[primaryKey] as number;
-  const newValue = popupEdit.value.value;
 
   try {
     const updateData = { [field]: newValue };

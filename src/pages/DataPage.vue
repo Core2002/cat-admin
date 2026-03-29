@@ -155,6 +155,14 @@
                       @keyup.enter="scope.set"
                     />
                     <q-input
+                      v-else-if="getColumnType(props.col.name) === 'time'"
+                      v-model="scope.value"
+                      dense
+                      autofocus
+                      outlined
+                      type="datetime-local"
+                    />
+                    <q-input
                       v-else
                       v-model="scope.value"
                       dense
@@ -270,6 +278,15 @@
                 outlined
                 dense
                 :rules="[(v) => !v || /^1[3-9]\d{9}$/.test(v) || '请输入有效的手机号']"
+              />
+              <q-input
+                v-else-if="col.type === 'time'"
+                :model-value="formatDateTimeLocal(editDialog.form[col.name] as string)"
+                @update:model-value="setFormField(col.name, $event)"
+                :label="col.label"
+                outlined
+                dense
+                type="datetime-local"
               />
             </template>
           </q-form>
@@ -573,7 +590,12 @@ function onRequest(props: {
 
 // Form field setter for reliable reactivity
 function setFormField(field: string, value: unknown) {
-  editDialog.value.form[field] = value;
+  const col = currentTable.value?.columns.find((c) => c.name === field);
+  if (col?.type === 'number' && value !== null && value !== undefined && value !== '') {
+    editDialog.value.form[field] = Number(value);
+  } else {
+    editDialog.value.form[field] = value;
+  }
 }
 
 // CRUD Operations
@@ -612,46 +634,87 @@ function onEdit(row: TableRow) {
   };
 }
 
+// Prepare form data for submission (convert types, format times)
+function prepareFormData(formData: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  const columns = currentTable.value?.columns || [];
+
+  for (const [key, value] of Object.entries(formData)) {
+    if (value === null || value === undefined || value === '') continue;
+
+    const col = columns.find((c) => c.name === key);
+
+    if (col?.type === 'number') {
+      result[key] = Number(value);
+    } else if (col?.type === 'time' || key.endsWith('_time')) {
+      if (typeof value !== 'string') {
+        result[key] = value;
+        continue;
+      }
+      let dateStr = value;
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateStr)) {
+        dateStr = dateStr + ':00';
+      }
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        const offset = -date.getTimezoneOffset();
+        const sign = offset >= 0 ? '+' : '-';
+        const absOffset = Math.abs(offset);
+        const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+        const minutes = String(absOffset % 60).padStart(2, '0');
+        const iso = date.toISOString().slice(0, 19);
+        result[key] = `${iso}${sign}${hours}:${minutes}`;
+      } else {
+        result[key] = dateStr;
+      }
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 async function onSave() {
   if (!selectedTable.value || !currentTable.value) return;
 
   editDialog.value.loading = true;
   try {
     const { form, isEdit, id } = editDialog.value;
+    const data = prepareFormData(form);
 
     switch (selectedTable.value) {
       case 'cats':
         if (isEdit) {
-          await catApi.update(id!, form);
+          await catApi.update(id!, data);
         } else {
-          await catApi.create(form as Omit<Cat, 'cat_id' | 'created_at'>);
+          await catApi.create(data as Omit<Cat, 'cat_id' | 'created_at'>);
         }
         break;
       case 'sites':
         if (isEdit) {
-          await siteApi.update(id!, form);
+          await siteApi.update(id!, data);
         } else {
-          await siteApi.create(form as Omit<Site, 'site_id' | 'created_at'>);
+          await siteApi.create(data as Omit<Site, 'site_id' | 'created_at'>);
         }
         break;
       case 'cat_actions':
-        await catActionApi.create(form as Omit<CatAction, 'action_id' | 'created_at'>);
+        await catActionApi.create(data as Omit<CatAction, 'action_id' | 'created_at'>);
         break;
       case 'cat_events':
-        await catEventApi.create(form as Omit<CatEvent, 'event_id' | 'created_at'>);
+        await catEventApi.create(data as Omit<CatEvent, 'event_id' | 'created_at'>);
         break;
       case 'cat_fsms':
         if (isEdit) {
-          await catFsmApi.update(id!, form);
+          await catFsmApi.update(id!, data);
         } else {
-          await catFsmApi.create(form as Omit<CatFSM, 'id'>);
+          await catFsmApi.create(data as Omit<CatFSM, 'id'>);
         }
         break;
       case 'site_fsms':
         if (isEdit) {
-          await siteFsmApi.update(id!, form);
+          await siteFsmApi.update(id!, data);
         } else {
-          await siteFsmApi.create(form as Omit<SiteFSM, 'id'>);
+          await siteFsmApi.create(data as Omit<SiteFSM, 'id'>);
         }
         break;
     }
@@ -707,7 +770,21 @@ function isBooleanField(): boolean {
 }
 
 function isTimeField(name: string): boolean {
-  return name.endsWith('_at') || name.endsWith('_time');
+  // Only auto-generated timestamps (ending with _at) are considered system time fields
+  return name.endsWith('_at');
+}
+
+function formatDateTimeLocal(value: string | null | undefined): string {
+  if (!value) return '';
+  // Convert ISO datetime to datetime-local format (YYYY-MM-DDTHH:mm)
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function isLongText(value: unknown): boolean {
@@ -746,20 +823,27 @@ async function onPopupSave(row: TableRow, field: string, newValue: unknown) {
   const id = (row as unknown as Record<string, number>)[primaryKey] as number;
 
   try {
-    const updateData = { [field]: newValue };
+    // Build complete update data from current row, only changing the edited field
+    const updateData: Record<string, unknown> = {};
+    editableColumns.value.forEach((col) => {
+      updateData[col.name] = (row as unknown as Record<string, unknown>)[col.name];
+    });
+    updateData[field] = newValue;
+
+    const data = prepareFormData(updateData);
 
     switch (selectedTable.value) {
       case 'cats':
-        await catApi.update(id, updateData);
+        await catApi.update(id, data);
         break;
       case 'sites':
-        await siteApi.update(id, updateData);
+        await siteApi.update(id, data);
         break;
       case 'cat_fsms':
-        await catFsmApi.update(id, updateData);
+        await catFsmApi.update(id, data);
         break;
       case 'site_fsms':
-        await siteFsmApi.update(id, updateData);
+        await siteFsmApi.update(id, data);
         break;
       default:
         return;

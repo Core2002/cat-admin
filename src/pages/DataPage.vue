@@ -90,6 +90,83 @@
               <template v-else-if="isLongText(props.value)">
                 <q-btn flat dense size="sm" label="查看" @click="showDetail(props.col.label, props.value)" />
               </template>
+              <template v-else-if="isEditableColumn(props.col.name)">
+                <span class="editable-cell cursor-pointer" @click.stop>
+                  {{ props.value ?? '-' }}
+                  <q-popup-edit
+                    v-model="popupEdit.value"
+                    :title="props.col.label"
+                    buttons
+                    v-slot="scope"
+                    @show="onPopupShow(props.row, props.col.name, props.value)"
+                    @save="onPopupSave(props.row, props.col.name)"
+                  >
+                    <q-input
+                      v-if="getColumnType(props.col.name) === 'string'"
+                      v-model="scope.value"
+                      dense
+                      autofocus
+                      outlined
+                      @keyup.enter="scope.set"
+                    />
+                    <q-input
+                      v-else-if="getColumnType(props.col.name) === 'number'"
+                      v-model.number="scope.value"
+                      dense
+                      autofocus
+                      outlined
+                      type="number"
+                      @keyup.enter="scope.set"
+                    />
+                    <q-select
+                      v-else-if="getColumnType(props.col.name) === 'select'"
+                      v-model="scope.value"
+                      :options="getColumnOptions(props.col.name)"
+                      dense
+                      outlined
+                      emit-value
+                      map-options
+                      @keyup.enter="scope.set"
+                    />
+                    <q-input
+                      v-else-if="getColumnType(props.col.name) === 'textarea'"
+                      v-model="scope.value"
+                      dense
+                      autofocus
+                      outlined
+                      type="textarea"
+                      rows="3"
+                    />
+                    <q-input
+                      v-else-if="getColumnType(props.col.name) === 'url'"
+                      v-model="scope.value"
+                      dense
+                      autofocus
+                      outlined
+                      type="url"
+                      @keyup.enter="scope.set"
+                    />
+                    <q-input
+                      v-else-if="getColumnType(props.col.name) === 'phone'"
+                      v-model="scope.value"
+                      dense
+                      autofocus
+                      outlined
+                      :rules="[(v) => !v || /^1[3-9]\d{9}$/.test(v) || '请输入有效的手机号']"
+                      @keyup.enter="scope.set"
+                    />
+                    <q-input
+                      v-else
+                      v-model="scope.value"
+                      dense
+                      autofocus
+                      outlined
+                      @keyup.enter="scope.set"
+                    />
+                  </q-popup-edit>
+                  <q-icon name="edit" size="xs" class="q-ml-xs text-grey-5" />
+                </span>
+              </template>
               <template v-else>
                 {{ props.value ?? '-' }}
               </template>
@@ -401,6 +478,13 @@ const detailDialog = ref({
   content: '',
 });
 
+// Popup Edit
+const popupEdit = ref({
+  row: null as TableRow | null,
+  field: '',
+  value: null as unknown,
+});
+
 // Select table
 function onSelectTable(tableName: string) {
   selectedTable.value = tableName;
@@ -633,6 +717,66 @@ function showDetail(title: string, content: string) {
   detailDialog.value = { show: true, title, content };
 }
 
+// Popup Edit helpers
+function isEditableColumn(name: string): boolean {
+  const col = currentTable.value?.columns.find((c) => c.name === name);
+  return col?.editable === true && !isTimeField(name);
+}
+
+function getColumnType(name: string): string | undefined {
+  const col = currentTable.value?.columns.find((c) => c.name === name);
+  return col?.type;
+}
+
+function getColumnOptions(name: string): string[] {
+  const col = currentTable.value?.columns.find((c) => c.name === name);
+  return col?.options || [];
+}
+
+function onPopupShow(row: TableRow, field: string, value: unknown) {
+  popupEdit.value = { row, field, value };
+}
+
+async function onPopupSave(row: TableRow, field: string) {
+  if (!selectedTable.value || !currentTable.value || !popupEdit.value.row) return;
+
+  const primaryKey = currentTable.value.primaryKey;
+  const id = (row as unknown as Record<string, number>)[primaryKey] as number;
+  const newValue = popupEdit.value.value;
+
+  try {
+    const updateData = { [field]: newValue };
+
+    switch (selectedTable.value) {
+      case 'cats':
+        await catApi.update(id, updateData);
+        break;
+      case 'sites':
+        await siteApi.update(id, updateData);
+        break;
+      case 'cat_fsms':
+        await catFsmApi.update(id, updateData);
+        break;
+      case 'site_fsms':
+        await siteFsmApi.update(id, updateData);
+        break;
+      default:
+        return;
+    }
+
+    // Update local data
+    const index = tableData.value.findIndex(
+      (r) => (r as unknown as Record<string, number>)[primaryKey] === id
+    );
+    if (index !== -1) {
+      (tableData.value[index] as unknown as Record<string, unknown>)[field] = newValue;
+    }
+  } catch (e) {
+    console.error('Failed to update field:', e);
+    void loadData(); // Reload on error
+  }
+}
+
 // Initialize
 watch(selectedTable, () => {
   if (selectedTable.value) {
@@ -663,5 +807,27 @@ void loadCounts();
 .slide-leave-to {
   transform: translateX(-100%);
   opacity: 0;
+}
+
+.editable-cell {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 6px;
+  margin: 2px 0;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.editable-cell:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.editable-cell:hover .q-icon {
+  opacity: 1;
+}
+
+.editable-cell .q-icon {
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 </style>

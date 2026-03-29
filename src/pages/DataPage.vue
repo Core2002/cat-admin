@@ -71,7 +71,7 @@
           :columns="currentColumns"
           :row-key="currentTable?.primaryKey"
           :loading="loading"
-          :pagination="pagination"
+          v-model:pagination="pagination"
           :rows-per-page-options="[10, 20, 50, 100]"
           @request="onRequest"
           class="q-ma-md"

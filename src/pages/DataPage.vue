@@ -550,6 +550,20 @@ async function onSave() {
       case 'cat_events':
         await catEventApi.create(form as Omit<CatEvent, 'event_id' | 'created_at'>);
         break;
+      case 'cat_fsms':
+        if (isEdit) {
+          await catFsmApi.update(id!, form);
+        } else {
+          await catFsmApi.create(form as Omit<CatFSM, 'id'>);
+        }
+        break;
+      case 'site_fsms':
+        if (isEdit) {
+          await siteFsmApi.update(id!, form);
+        } else {
+          await siteFsmApi.create(form as Omit<SiteFSM, 'id'>);
+        }
+        break;
     }
 
     editDialog.value.show = false;
@@ -581,6 +595,12 @@ async function onDelete(row: TableRow) {
         break;
       case 'cat_events':
         await catEventApi.delete(id);
+        break;
+      case 'cat_fsms':
+        await catFsmApi.delete(id);
+        break;
+      case 'site_fsms':
+        await siteFsmApi.delete(id);
         break;
     }
 

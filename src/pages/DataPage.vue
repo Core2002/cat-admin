@@ -414,7 +414,7 @@ const tables = ref<TableDef[]>([
       { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', type: 'number', required: true, editable: true },
       { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: true },
       { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: true },
-      { name: 'action_type', label: '动作类型', field: 'action_type', align: 'left', type: 'select', options: ['喂食', '喂水', '测体温', '逗猫', '绝育', '体检', '驱虫', '清理猫砂', '环境消毒', '修剪指甲', '洗脚', '疫苗'], required: true, editable: true },
+      { name: 'action_type', label: '动作类型', field: 'action_type', align: 'left', type: 'select', options: ['测体温', '绝育', '体检', '驱虫', '修剪指甲', '洗澡', '疫苗'], required: true, editable: true },
       { name: 'action_detail', label: '详情', field: 'action_detail', type: 'textarea', editable: true },
       { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
     ],
@@ -461,6 +461,7 @@ const tables = ref<TableDef[]>([
       { name: 'last_feed_time', label: '上次喂食', field: 'last_feed_time', align: 'left', type: 'time', editable: true },
       { name: 'last_give_water_time', label: '上次喂水', field: 'last_give_water_time', align: 'left', type: 'time', editable: true },
       { name: 'last_play_time', label: '上次逗猫', field: 'last_play_time', align: 'left', type: 'time', editable: true },
+      { name: 'last_clean_litter', label: '上次清理猫砂', field: 'last_clean_litter', align: 'left', type: 'time', editable: true },
     ],
   },
 ]);

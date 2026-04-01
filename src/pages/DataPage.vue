@@ -442,7 +442,7 @@ const tables = ref<TableDef[]>([
     primaryKey: 'cat_id',
     count: 0,
     columns: [
-      { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', sortable: true, type: 'number', required: true, editable: false },
+      { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: false },
       { name: 'temperature_c', label: '体温(℃)', field: 'temperature_c', align: 'right', type: 'number', required: true, editable: true },
       { name: 'weight_kg', label: '体重(kg)', field: 'weight_kg', align: 'right', type: 'number', required: true, editable: true },

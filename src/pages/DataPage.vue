@@ -444,9 +444,9 @@ const tables = ref<TableDef[]>([
     columns: [
       { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', sortable: true, type: 'number', required: true, editable: false },
       { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: false },
-      { name: 'temperature_c', label: '体温(℃)', field: 'temperature_c', align: 'right', type: 'number', editable: true },
-      { name: 'weight_kg', label: '体重(kg)', field: 'weight_kg', align: 'right', type: 'number', editable: false },
-      { name: 'trim_nails_time', label: '修剪指甲时间', field: 'trim_nails_time', align: 'left', type: 'time', editable: false },
+      { name: 'temperature_c', label: '体温(℃)', field: 'temperature_c', align: 'right', type: 'number', required: true, editable: true },
+      { name: 'weight_kg', label: '体重(kg)', field: 'weight_kg', align: 'right', type: 'number', required: true, editable: true },
+      { name: 'trim_nails_time', label: '修剪指甲时间', field: 'trim_nails_time', align: 'left', type: 'time', required: true, editable: false },
     ],
   },
   {
@@ -456,12 +456,12 @@ const tables = ref<TableDef[]>([
     primaryKey: 'site_id',
     count: 0,
     columns: [
-      { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', sortable: true, type: 'number', required: true, editable: false },
-      { name: 'last_disinfect_time', label: '上次消毒', field: 'last_disinfect_time', align: 'left', type: 'time', editable: false },
-      { name: 'last_feed_time', label: '上次喂食', field: 'last_feed_time', align: 'left', type: 'time', editable: false },
-      { name: 'last_give_water_time', label: '上次喂水', field: 'last_give_water_time', align: 'left', type: 'time', editable: false },
-      { name: 'last_play_time', label: '上次逗猫', field: 'last_play_time', align: 'left', type: 'time', editable: false },
-      { name: 'last_clean_litter', label: '上次清理猫砂', field: 'last_clean_litter', align: 'left', type: 'time', editable: false },
+      { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', sortable: true, type: 'number', editable: false },
+      { name: 'last_disinfect_time', label: '上次消毒', field: 'last_disinfect_time', align: 'left', type: 'time', required: true, editable: false },
+      { name: 'last_feed_time', label: '上次喂食', field: 'last_feed_time', align: 'left', type: 'time', required: true, editable: false },
+      { name: 'last_give_water_time', label: '上次喂水', field: 'last_give_water_time', align: 'left', type: 'time', required: true, editable: false },
+      { name: 'last_play_time', label: '上次逗猫', field: 'last_play_time', align: 'left', type: 'time', required: true, editable: false },
+      { name: 'last_clean_litter', label: '上次清理猫砂', field: 'last_clean_litter', align: 'left', type: 'time', required: true, editable: false },
     ],
   },
 ]);
@@ -483,7 +483,8 @@ const currentColumns = computed(() => {
 });
 
 const editableColumns = computed(() => {
-  return currentTable.value?.columns.filter((col) => col.editable) || [];
+  // 表单显示：必填字段 + 可编辑字段
+  return currentTable.value?.columns.filter((col) => col.required || col.editable) || [];
 });
 
 // Edit Dialog

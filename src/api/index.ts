@@ -88,17 +88,12 @@ export interface CatAction {
 }
 
 export const ACTION_TYPES = [
-  '喂食',
-  '喂水',
   '测体温',
-  '逗猫',
   '绝育',
   '体检',
   '驱虫',
-  '清理猫砂',
-  '环境消毒',
   '修剪指甲',
-  '洗脚',
+  '洗澡',
   '疫苗',
 ] as const;
 

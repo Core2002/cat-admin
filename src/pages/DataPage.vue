@@ -379,14 +379,14 @@ const tables = ref<TableDef[]>([
     primaryKey: 'cat_id',
     count: 0,
     columns: [
-      { name: 'cat_id', label: 'ID', field: 'cat_id', align: 'left', sortable: true, type: 'number', editable: false },
+      { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'cat_name', label: '名称', field: 'cat_name', align: 'left', sortable: true, type: 'string', required: true, editable: true },
       { name: 'cat_type', label: '品种', field: 'cat_type', align: 'left', type: 'string', required: true, editable: true },
       { name: 'cat_gender', label: '性别', field: 'cat_gender', align: 'center', type: 'select', options: ['公', '母'], required: true, editable: true },
       { name: 'cat_photo_uri', label: '照片', field: 'cat_photo_uri', type: 'url', required: true, editable: true },
       { name: 'master_name', label: '主人', field: 'master_name', align: 'left', type: 'string', required: true, editable: true },
       { name: 'master_phone_number', label: '主人电话', field: 'master_phone_number', type: 'phone', required: true, editable: true },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
     ],
   },
   {
@@ -396,11 +396,11 @@ const tables = ref<TableDef[]>([
     primaryKey: 'site_id',
     count: 0,
     columns: [
-      { name: 'site_id', label: 'ID', field: 'site_id', align: 'left', sortable: true, type: 'number', editable: false },
+      { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'site_name', label: '名称', field: 'site_name', align: 'left', sortable: true, type: 'string', required: true, editable: true },
       { name: 'site_address', label: '地址', field: 'site_address', align: 'left', type: 'string', required: true, editable: true },
       { name: 'site_admin_phone_number', label: '管理员电话', field: 'site_admin_phone_number', type: 'phone', required: true, editable: false },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
     ],
   },
   {
@@ -410,13 +410,13 @@ const tables = ref<TableDef[]>([
     primaryKey: 'action_id',
     count: 0,
     columns: [
-      { name: 'action_id', label: 'ID', field: 'action_id', align: 'left', sortable: true, type: 'number', editable: false },
+      { name: 'action_id', label: '操作ID', field: 'action_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', type: 'number', required: true, editable: false },
       { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: false },
       { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: false },
       { name: 'action_type', label: '动作类型', field: 'action_type', align: 'left', type: 'select', options: ['测体温', '绝育', '体检', '驱虫', '修剪指甲', '洗澡', '疫苗'], required: true, editable: false },
-      { name: 'action_detail', label: '详情', field: 'action_detail', type: 'textarea', editable: false },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
+      { name: 'action_detail', label: '详情', field: 'action_detail', type: 'textarea', required: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
     ],
   },
   {
@@ -426,13 +426,13 @@ const tables = ref<TableDef[]>([
     primaryKey: 'event_id',
     count: 0,
     columns: [
-      { name: 'event_id', label: 'ID', field: 'event_id', align: 'left', sortable: true, type: 'number', editable: false },
+      { name: 'event_id', label: '事件ID', field: 'event_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', type: 'number', required: true, editable: false },
       { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: false },
       { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: false },
       { name: 'event_type', label: '事件类型', field: 'event_type', align: 'left', type: 'select', options: ['生病', '受伤', '怀孕', '分娩', '死亡', '合同解除'], required: true, editable: false },
       { name: 'detail', label: '详情', field: 'detail', type: 'textarea', required: true, editable: false },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
     ],
   },
   {

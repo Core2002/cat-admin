@@ -131,7 +131,7 @@ export const catEventApi = {
   getByCat: (catId: number) => request<CatEvent[]>(`/cat-events/cat/${catId}`),
   getBySite: (siteId: number) => request<CatEvent[]>(`/cat-events/site/${siteId}`),
   create: (event: Omit<CatEvent, 'event_id' | 'created_at'>) =>
-    request<CatEvent>('/cat-events', { method: 'POST', body: JSON.stringify(event) }),
+    request<{ event: CatEvent }>('/cat-events', { method: 'POST', body: JSON.stringify(event) }),
   update: (id: number, event: Partial<CatEvent>) =>
     request<CatEvent>(`/cat-events/${id}`, { method: 'PUT', body: JSON.stringify(event) }),
   delete: (id: number) => request<void>(`/cat-events/${id}`, { method: 'DELETE' }),

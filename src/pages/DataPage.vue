@@ -637,11 +637,15 @@ function onEdit(row: TableRow) {
 }
 
 // Prepare form data for submission (convert types, format times)
-function prepareFormData(formData: Record<string, unknown>): Record<string, unknown> {
+function prepareFormData(formData: Record<string, unknown>, isEdit: boolean): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   const columns = currentTable.value?.columns || [];
+  const primaryKey = currentTable.value?.primaryKey;
 
   for (const [key, value] of Object.entries(formData)) {
+    // Skip primary key field when creating new record
+    if (!isEdit && key === primaryKey) continue;
+    
     if (value === null || value === undefined || value === '') continue;
 
     const col = columns.find((c) => c.name === key);
@@ -682,7 +686,7 @@ async function onSave() {
   editDialog.value.loading = true;
   try {
     const { form, isEdit, id } = editDialog.value;
-    const data = prepareFormData(form);
+    const data = prepareFormData(form, isEdit);
 
     switch (selectedTable.value) {
       case 'cats':
@@ -700,10 +704,18 @@ async function onSave() {
         }
         break;
       case 'cat_actions':
-        await catActionApi.create(data as Omit<CatAction, 'action_id' | 'created_at'>);
+        if (isEdit) {
+          await catActionApi.update(id!, data);
+        } else {
+          await catActionApi.create(data as Omit<CatAction, 'action_id' | 'created_at'>);
+        }
         break;
       case 'cat_events':
-        await catEventApi.create(data as Omit<CatEvent, 'event_id' | 'created_at'>);
+        if (isEdit) {
+          await catEventApi.update(id!, data);
+        } else {
+          await catEventApi.create(data as Omit<CatEvent, 'event_id' | 'created_at'>);
+        }
         break;
       case 'cat_fsms':
         if (isEdit) {
@@ -832,7 +844,7 @@ async function onPopupSave(row: TableRow, field: string, newValue: unknown) {
     });
     updateData[field] = newValue;
 
-    const data = prepareFormData(updateData);
+    const data = prepareFormData(updateData, true); // popup edit is always an update
 
     switch (selectedTable.value) {
       case 'cats':

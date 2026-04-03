@@ -90,6 +90,20 @@
               <template v-else-if="props.col.name === 'action_detail'">
                 {{ formatActionDetail(props.value) }}
               </template>
+              <template v-else-if="isImageField(props.col.name) && props.value">
+                <q-img
+                  :src="props.value"
+                  style="width: 60px; height: 60px; border-radius: 4px; cursor: pointer"
+                  fit="cover"
+                  @click="showImagePreview(props.value)"
+                >
+                  <template #error>
+                    <div class="absolute-full flex flex-center bg-grey-3 text-grey-6">
+                      <q-icon name="broken_image" size="24px" />
+                    </div>
+                  </template>
+                </q-img>
+              </template>
               <template v-else-if="isLongText(props.value)">
                 <q-btn flat dense size="sm" label="查看" @click="showDetail(props.col.label, props.value)" />
               </template>
@@ -272,7 +286,13 @@
                 outlined
                 dense
                 type="url"
-              />
+              >
+                <template v-if="isImageField(col.name) && editDialog.form[col.name]" #append>
+                  <q-btn flat round dense icon="image" size="sm" @click="showImagePreview(editDialog.form[col.name] as string)">
+                    <q-tooltip>预览图片</q-tooltip>
+                  </q-btn>
+                </template>
+              </q-input>
               <q-input
                 v-else-if="col.type === 'phone'"
                 :model-value="editDialog.form[col.name] as string"
@@ -354,6 +374,30 @@
         </q-card-section>
         <q-card-section class="scroll">
           <q-item-label class="text-body2" style="white-space: pre-wrap; word-break: break-all">{{ detailDialog.content }}</q-item-label>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- Image Preview Dialog -->
+    <q-dialog v-model="imagePreview.show">
+      <q-card flat class="q-dialog-plugin" style="max-width: 90vw; max-height: 90vh">
+        <q-card-section class="row items-center q-pb-none">
+          <q-space />
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-img
+            :src="imagePreview.url"
+            style="max-width: 85vw; max-height: 80vh"
+            fit="contain"
+          >
+            <template #error>
+              <div class="absolute-full flex flex-center bg-grey-3 text-grey-6 column items-center q-pa-md">
+                <q-icon name="broken_image" size="64px" />
+                <div class="q-mt-md">图片加载失败</div>
+              </div>
+            </template>
+          </q-img>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -580,6 +624,12 @@ const detailDialog = ref({
   show: false,
   title: '',
   content: '',
+});
+
+// Image Preview Dialog
+const imagePreview = ref({
+  show: false,
+  url: '',
 });
 
 // Popup Edit (state no longer needed, values passed directly)
@@ -940,6 +990,15 @@ function formatTime(value: string | null | undefined): string {
 
 function showDetail(title: string, content: string) {
   detailDialog.value = { show: true, title, content };
+}
+
+// Image preview helpers
+function isImageField(name: string): boolean {
+  return name === 'cat_photo_uri';
+}
+
+function showImagePreview(url: string) {
+  imagePreview.value = { show: true, url };
 }
 
 // Popup Edit helpers

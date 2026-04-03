@@ -19,7 +19,7 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
+    <q-drawer v-model="leftDrawerOpen" bordered>
       <q-list>
         <q-item-label header> 导航 </q-item-label>
 
@@ -46,16 +46,16 @@ const authStore = useAuthStore();
 
 const linksList: EssentialLinkProps[] = [
   {
-    title: '首页',
-    caption: '首页',
-    icon: 'home',
-    link: '/',
-  },
-  {
     title: '数据管理',
     caption: '数据密集型页面',
     icon: 'table_chart',
-    link: '/data',
+    link: '/',
+  },
+  {
+    title: '首页',
+    caption: '首页',
+    icon: 'home',
+    link: '/home',
   },
   {
     title: 'Docs',

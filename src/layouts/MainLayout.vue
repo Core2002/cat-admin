@@ -46,16 +46,16 @@ const authStore = useAuthStore();
 
 const linksList: EssentialLinkProps[] = [
   {
-    title: '数据管理',
-    caption: '数据密集型页面',
-    icon: 'table_chart',
+    title: '数据看板',
+    caption: '多源数据可视化集中展示工具，用于实时监控指标、辅助业务决策。',
+    icon: 'home',
     link: '/',
   },
   {
-    title: '首页',
-    caption: '首页',
-    icon: 'home',
-    link: '/home',
+    title: '数据库管理系统',
+    caption: '高效管理数据的存储、查询、更新与删除，同时通过安全性、完整性、并发控制和故障恢复机制，保障数据的一致性与可靠性。',
+    icon: 'table_chart',
+    link: '/data',
   },
   {
     title: 'Docs',

@@ -11,8 +11,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/MainLayout.vue'),
     meta: { requiresAuth: true },
     children: [
-      { path: '', component: () => import('pages/DataPage.vue') },
-      { path: 'home', component: () => import('pages/IndexPage.vue') },
+      { path: '', component: () => import('pages/IndexPage.vue') },
+      { path: 'data', component: () => import('pages/DataPage.vue') },
     ],
   },
 

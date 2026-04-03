@@ -182,6 +182,7 @@ export interface SiteFSM {
   last_feed_time: string;
   last_give_water_time: string;
   last_play_time: string;
+  last_clean_litter_time: string;
 }
 
 export const siteFsmApi = {
@@ -213,5 +214,10 @@ export const siteFsmApi = {
     request<SiteFSM>(`/site-fsms/${siteId}/play-time`, {
       method: 'PATCH',
       body: JSON.stringify({ last_play_time }),
+    }),
+  updateCleanLitterTime: (siteId: number, last_clean_litter_time: string) =>
+    request<SiteFSM>(`/site-fsms/${siteId}/clean-litter-time`, {
+      method: 'PATCH',
+      body: JSON.stringify({ last_clean_litter_time }),
     }),
 };

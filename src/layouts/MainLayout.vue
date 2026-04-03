@@ -52,6 +52,12 @@ const linksList: EssentialLinkProps[] = [
     link: '/',
   },
   {
+    title: '操作台',
+    caption: '简洁直观的操作界面，快速记录日常操作和事件。',
+    icon: 'dashboard_customize',
+    link: '/operation',
+  },
+  {
     title: '数据库管理系统',
     caption: '高效管理数据的存储、查询、更新与删除，同时通过安全性、完整性、并发控制和故障恢复机制，保障数据的一致性与可靠性。',
     icon: 'table_chart',

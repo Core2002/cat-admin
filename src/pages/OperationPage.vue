@@ -649,7 +649,7 @@ function quickAction(action: string) {
   }).onOk(() => {
     void (async () => {
       try {
-        const now = new Date().toISOString();
+        const now = toLocalISOString(new Date());
 
         // 设施操作 - 使用专门的 PATCH API
         if (isFacilityAction && selectedSite.value) {
@@ -924,7 +924,18 @@ async function loadTodayRecords() {
   }
 }
 
-// 辅助函数
+// 辅助函数 - 获取本地时区的 ISO 时间字符串 (UTC+8)
+function toLocalISOString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`;
+}
+
 function getCatName(catId: number) {
   const cat = cats.value.find((c) => c.cat_id === catId);
   return cat?.cat_name || `猫咪 #${catId}`;

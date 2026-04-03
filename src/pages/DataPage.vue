@@ -87,6 +87,9 @@
               <template v-else-if="isTimeField(props.col.name)">
                 {{ formatTime(props.value) }}
               </template>
+              <template v-else-if="props.col.name === 'action_detail'">
+                {{ formatActionDetail(props.value) }}
+              </template>
               <template v-else-if="isLongText(props.value)">
                 <q-btn flat dense size="sm" label="查看" @click="showDetail(props.col.label, props.value)" />
               </template>
@@ -288,6 +291,45 @@
                 dense
                 type="datetime-local"
               />
+              <!-- JSON type for action_detail -->
+              <template v-else-if="col.type === 'json' && col.name === 'action_detail'">
+                <div class="col-12">
+                  <q-item-label class="text-caption text-grey q-mb-sm">详情数据</q-item-label>
+                  <template v-for="field in currentActionDetailFields" :key="field.key">
+                    <q-input
+                      v-if="field.type === 'number'"
+                      :model-value="(editDialog.form.action_detail as Record<string, unknown>)?.[field.key] as number"
+                      @update:model-value="setActionDetailField(field.key, $event)"
+                      :label="field.label + (field.unit ? ` (${field.unit})` : '')"
+                      outlined
+                      dense
+                      type="number"
+                      class="q-mb-sm"
+                    />
+                    <q-input
+                      v-else-if="field.type === 'string'"
+                      :model-value="(editDialog.form.action_detail as Record<string, unknown>)?.[field.key] as string"
+                      @update:model-value="setActionDetailField(field.key, $event)"
+                      :label="field.label"
+                      outlined
+                      dense
+                      class="q-mb-sm"
+                    />
+                    <q-select
+                      v-else-if="field.type === 'select'"
+                      :model-value="(editDialog.form.action_detail as Record<string, unknown>)?.[field.key] as string"
+                      @update:model-value="setActionDetailField(field.key, $event)"
+                      :label="field.label"
+                      :options="field.options || []"
+                      outlined
+                      dense
+                      emit-value
+                      map-options
+                      class="q-mb-sm"
+                    />
+                  </template>
+                </div>
+              </template>
             </template>
           </q-form>
         </q-card-section>
@@ -343,11 +385,40 @@ interface ColumnDef {
   field: string;
   align?: 'left' | 'center' | 'right';
   sortable?: boolean;
-  type?: 'string' | 'number' | 'select' | 'textarea' | 'url' | 'phone' | 'time';
+  type?: 'string' | 'number' | 'select' | 'textarea' | 'url' | 'phone' | 'time' | 'json';
   options?: string[];
   required?: boolean;
   editable?: boolean;
 }
+
+// Action detail field definitions per action type
+interface ActionDetailField {
+  key: string;
+  label: string;
+  type: 'number' | 'string' | 'select';
+  options?: string[];
+  unit?: string;
+}
+
+const actionDetailFields: Record<string, ActionDetailField[]> = {
+  '测体温': [{ key: 'temperature', label: '体温', type: 'number', unit: '℃' }],
+  '绝育': [{ key: 'notes', label: '备注', type: 'string' }],
+  '体检': [
+    { key: 'temperature', label: '体温', type: 'number', unit: '℃' },
+    { key: 'weight', label: '体重', type: 'number', unit: 'kg' },
+    { key: 'notes', label: '备注', type: 'string' },
+  ],
+  '驱虫': [
+    { key: 'drug_name', label: '药物名称', type: 'string' },
+    { key: 'dosage', label: '剂量', type: 'string' },
+  ],
+  '修剪指甲': [{ key: 'notes', label: '备注', type: 'string' }],
+  '洗澡': [{ key: 'notes', label: '备注', type: 'string' }],
+  '疫苗': [
+    { key: 'vaccine_name', label: '疫苗名称', type: 'string' },
+    { key: 'batch_no', label: '批号', type: 'string' },
+  ],
+};
 
 interface TableDef {
   name: string;
@@ -411,11 +482,11 @@ const tables = ref<TableDef[]>([
     count: 0,
     columns: [
       { name: 'action_id', label: '操作ID', field: 'action_id', align: 'left', sortable: true, type: 'number', editable: false },
-      { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', type: 'number', required: true, editable: false },
-      { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: false },
-      { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: false },
-      { name: 'action_type', label: '动作类型', field: 'action_type', align: 'left', type: 'select', options: ['测体温', '绝育', '体检', '驱虫', '修剪指甲', '洗澡', '疫苗'], required: true, editable: false },
-      { name: 'action_detail', label: '详情', field: 'action_detail', type: 'textarea', required: true, editable: false },
+      { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', type: 'number', required: true, editable: true },
+      { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: true },
+      { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: true },
+      { name: 'action_type', label: '动作类型', field: 'action_type', align: 'left', type: 'select', options: ['测体温', '绝育', '体检', '驱虫', '修剪指甲', '洗澡', '疫苗'], required: true, editable: true },
+      { name: 'action_detail', label: '详情', field: 'action_detail', type: 'json', required: true, editable: true },
       { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
     ],
   },
@@ -485,6 +556,14 @@ const currentColumns = computed(() => {
 const editableColumns = computed(() => {
   // 表单显示：必填字段 + 可编辑字段
   return currentTable.value?.columns.filter((col) => col.required || col.editable) || [];
+});
+
+// Get action detail fields based on current action_type
+const currentActionDetailFields = computed(() => {
+  if (selectedTable.value !== 'cat_actions') return [];
+  const actionType = editDialog.value.form.action_type as string;
+  if (!actionType) return [];
+  return actionDetailFields[actionType] || [];
 });
 
 // Edit Dialog
@@ -600,13 +679,33 @@ function setFormField(field: string, value: unknown) {
   }
 }
 
+// Set action detail field (for JSON type)
+function setActionDetailField(key: string, value: unknown) {
+  if (!editDialog.value.form.action_detail) {
+    editDialog.value.form.action_detail = {};
+  }
+  const detail = editDialog.value.form.action_detail as Record<string, unknown>;
+  const field = currentActionDetailFields.value.find((f) => f.key === key);
+  if (field?.type === 'number' && value !== null && value !== undefined && value !== '') {
+    detail[key] = Number(value);
+  } else {
+    detail[key] = value;
+  }
+}
+
 // CRUD Operations
 function onAdd() {
   if (!currentTable.value) return;
 
   const form: Record<string, unknown> = {};
   editableColumns.value.forEach((col) => {
-    form[col.name] = col.type === 'select' ? col.options?.[0] : null;
+    if (col.type === 'json') {
+      form[col.name] = {};
+    } else if (col.type === 'select') {
+      form[col.name] = col.options?.[0];
+    } else {
+      form[col.name] = null;
+    }
   });
 
   editDialog.value = {
@@ -623,7 +722,17 @@ function onEdit(row: TableRow) {
 
   const form: Record<string, unknown> = {};
   editableColumns.value.forEach((col) => {
-    form[col.name] = (row as unknown as Record<string, unknown>)[col.name];
+    const rawValue = (row as unknown as Record<string, unknown>)[col.name];
+    if (col.type === 'json' && typeof rawValue === 'string') {
+      // Parse JSON string to object for editing
+      try {
+        form[col.name] = JSON.parse(rawValue);
+      } catch {
+        form[col.name] = {};
+      }
+    } else {
+      form[col.name] = rawValue;
+    }
   });
 
   const primaryKey = currentTable.value.primaryKey;
@@ -652,6 +761,13 @@ function prepareFormData(formData: Record<string, unknown>, isEdit: boolean): Re
 
     if (col?.type === 'number') {
       result[key] = Number(value);
+    } else if (col?.type === 'json') {
+      // Serialize JSON object to string
+      if (typeof value === 'object') {
+        result[key] = JSON.stringify(value);
+      } else {
+        result[key] = value;
+      }
     } else if (col?.type === 'time' || key.endsWith('_time')) {
       if (typeof value !== 'string') {
         result[key] = value;
@@ -803,6 +919,18 @@ function formatDateTimeLocal(value: string | null | undefined): string {
 
 function isLongText(value: unknown): boolean {
   return typeof value === 'string' && value.length > 50;
+}
+
+function formatActionDetail(value: unknown): string {
+  if (typeof value !== 'string') return '-';
+  try {
+    const obj = JSON.parse(value) as Record<string, unknown>;
+    return Object.entries(obj)
+      .map(([k, v]) => `${k}: ${String(v)}`)
+      .join(', ');
+  } catch {
+    return value;
+  }
 }
 
 function formatTime(value: string | null | undefined): string {

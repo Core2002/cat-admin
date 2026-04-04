@@ -405,7 +405,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   catApi,
   siteApi,
@@ -1070,7 +1070,12 @@ watch(selectedTable, () => {
   }
 });
 
-void loadCounts();
+onMounted(() => {
+  void loadCounts();
+  // 默认选中猫咪表
+  selectedTable.value = 'cats';
+  void loadData();
+});
 </script>
 
 <style scoped>

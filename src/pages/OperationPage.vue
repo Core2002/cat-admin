@@ -98,7 +98,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="blue"
+                color="primary"
                 size="lg"
                 :disable="!selectedSite"
                 @click="quickAction('feed')"
@@ -113,7 +113,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="cyan"
+                color="info"
                 size="lg"
                 :disable="!selectedSite"
                 @click="quickAction('water')"
@@ -128,7 +128,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="green"
+                color="positive"
                 size="lg"
                 :disable="!selectedSite"
                 @click="quickAction('disinfect')"
@@ -143,7 +143,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="purple"
+                color="secondary"
                 size="lg"
                 :disable="!selectedSite"
                 @click="quickAction('play')"
@@ -158,7 +158,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="brown"
+                color="accent"
                 size="lg"
                 :disable="!selectedSite"
                 @click="quickAction('litter')"
@@ -178,7 +178,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="orange"
+                color="warning"
                 size="lg"
                 :disable="!selectedCat"
                 @click="openActionDialog('测体温')"
@@ -193,7 +193,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="amber"
+                color="primary"
                 size="lg"
                 :disable="!selectedCat"
                 @click="quickAction('weight')"
@@ -208,7 +208,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="pink"
+                color="secondary"
                 size="lg"
                 :disable="!selectedCat"
                 @click="quickAction('nails')"
@@ -223,7 +223,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="teal"
+                color="info"
                 size="lg"
                 :disable="!selectedCat"
                 @click="quickAction('bath')"
@@ -238,7 +238,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="indigo"
+                color="accent"
                 size="lg"
                 :disable="!selectedCat"
                 @click="quickAction('deworm')"
@@ -253,7 +253,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="red"
+                color="negative"
                 size="lg"
                 :disable="!selectedCat"
                 @click="quickAction('vaccine')"
@@ -268,7 +268,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="light-green"
+                color="positive"
                 size="lg"
                 :disable="!selectedCat"
                 @click="quickAction('checkup')"
@@ -283,7 +283,7 @@
               <q-btn
                 unelevated
                 class="full-width operation-btn"
-                color="deep-orange"
+                color="secondary"
                 size="lg"
                 :disable="!selectedCat"
                 @click="quickAction('neuter')"
@@ -313,7 +313,7 @@
               <q-btn
                 outline
                 class="full-width"
-                color="red"
+                color="negative"
                 :disable="!selectedCat"
                 @click="openEventDialog('生病')"
               >
@@ -325,7 +325,7 @@
               <q-btn
                 outline
                 class="full-width"
-                color="orange"
+                color="warning"
                 :disable="!selectedCat"
                 @click="openEventDialog('受伤')"
               >
@@ -337,7 +337,7 @@
               <q-btn
                 outline
                 class="full-width"
-                color="pink"
+                color="secondary"
                 :disable="!selectedCat"
                 @click="openEventDialog('怀孕')"
               >
@@ -349,7 +349,7 @@
               <q-btn
                 outline
                 class="full-width"
-                color="purple"
+                color="accent"
                 :disable="!selectedCat"
                 @click="openEventDialog('分娩')"
               >
@@ -361,7 +361,7 @@
               <q-btn
                 outline
                 class="full-width"
-                color="grey"
+                color="dark"
                 :disable="!selectedCat"
                 @click="openEventDialog('死亡')"
               >
@@ -373,7 +373,7 @@
               <q-btn
                 outline
                 class="full-width"
-                color="blue"
+                color="primary"
                 :disable="!selectedCat"
                 @click="openEventDialog('合同解除')"
               >
@@ -504,7 +504,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import {
   catApi,
@@ -551,6 +551,7 @@ interface TodayRecord {
   title: string;
   subtitle: string;
   time: string;
+  timestamp: Date; // 用于排序的原始时间
   icon: string;
   color: string;
 }
@@ -874,15 +875,52 @@ async function submitEvent() {
 // 加载今日记录
 async function loadTodayRecords() {
   try {
-    const today = new Date().toDateString();
+    // 使用本地时区的日期范围
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    
     const records: TodayRecord[] = [];
 
-    // 加载今日操作记录
+    // 加载今日设施操作记录
+    if (selectedSite.value) {
+      const siteFsm = await siteFsmApi.get(selectedSite.value);
+      if (siteFsm) {
+        // 检查各项设施操作时间是否为今天
+        const facilityActions = [
+          { time: siteFsm.last_feed_time, title: '喂食', icon: 'restaurant', color: 'primary' },
+          { time: siteFsm.last_give_water_time, title: '喂水', icon: 'water_drop', color: 'info' },
+          { time: siteFsm.last_disinfect_time, title: '消毒清洁', icon: 'cleaning_services', color: 'positive' },
+          { time: siteFsm.last_play_time, title: '互动玩耍', icon: 'sports_esports', color: 'secondary' },
+          { time: siteFsm.last_clean_litter_time, title: '清理猫砂', icon: 'delete_outline', color: 'accent' },
+        ];
+
+        facilityActions.forEach((action) => {
+          if (action.time) {
+            const actionDate = new Date(action.time);
+            if (actionDate >= todayStart && actionDate < todayEnd) {
+              records.push({
+                id: `facility-${action.title}-${action.time}`,
+                title: action.title,
+                subtitle: getSiteName(selectedSite.value!),
+                time: formatTime(action.time),
+                timestamp: actionDate,
+                icon: action.icon,
+                color: action.color,
+              });
+            }
+          }
+        });
+      }
+    }
+
+    // 加载今日猫咪操作记录
     if (selectedCat.value) {
       const actions = await catActionApi.getByCat(selectedCat.value);
-      const todayActions = actions.filter(
-        (a) => new Date(a.created_at).toDateString() === today
-      );
+      const todayActions = actions.filter((a) => {
+        const actionDate = new Date(a.created_at);
+        return actionDate >= todayStart && actionDate < todayEnd;
+      });
 
       todayActions.forEach((action) => {
         records.push({
@@ -890,18 +928,20 @@ async function loadTodayRecords() {
           title: action.action_type,
           subtitle: getCatName(action.cat_id),
           time: formatTime(action.created_at),
+          timestamp: new Date(action.created_at),
           icon: getActionIcon(action.action_type),
           color: getActionColor(action.action_type),
         });
       });
     }
 
-    // 加载今日事件记录
+    // 加载今日猫咪事件记录
     if (selectedCat.value) {
       const events = await catEventApi.getByCat(selectedCat.value);
-      const todayEvents = events.filter(
-        (e) => new Date(e.created_at).toDateString() === today
-      );
+      const todayEvents = events.filter((e) => {
+        const eventDate = new Date(e.created_at);
+        return eventDate >= todayStart && eventDate < todayEnd;
+      });
 
       todayEvents.forEach((event) => {
         records.push({
@@ -909,15 +949,16 @@ async function loadTodayRecords() {
           title: event.event_type,
           subtitle: event.detail || getCatName(event.cat_id),
           time: formatTime(event.created_at),
+          timestamp: new Date(event.created_at),
           icon: getEventIcon(event.event_type),
           color: getEventColor(event.event_type),
         });
       });
     }
 
-    // 按时间排序
+    // 按时间倒序排序（最新的在前）
     todayRecords.value = records.sort(
-      (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
     );
   } catch (error) {
     console.error('加载今日记录失败:', error);
@@ -941,6 +982,11 @@ function getCatName(catId: number) {
   return cat?.cat_name || `猫咪 #${catId}`;
 }
 
+function getSiteName(siteId: number) {
+  const site = sites.value.find((s) => s.site_id === siteId);
+  return site?.site_name || `设施 #${siteId}`;
+}
+
 function formatTime(timeStr: string) {
   const date = new Date(timeStr);
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -961,25 +1007,25 @@ function getActionIcon(type: string) {
 
 function getActionColor(type: string) {
   const colors: Record<string, string> = {
-    测体温: 'blue',
-    绝育: 'deep-orange',
-    体检: 'light-green',
-    驱虫: 'indigo',
-    修剪指甲: 'pink',
-    洗澡: 'teal',
-    疫苗: 'red',
+    测体温: 'warning',
+    绝育: 'secondary',
+    体检: 'positive',
+    驱虫: 'accent',
+    修剪指甲: 'secondary',
+    洗澡: 'info',
+    疫苗: 'negative',
   };
   return colors[type] || 'grey';
 }
 
 function getEventColor(type: string) {
   const colors: Record<string, string> = {
-    生病: 'red',
-    受伤: 'orange',
-    怀孕: 'pink',
-    分娩: 'purple',
-    死亡: 'grey',
-    合同解除: 'blue',
+    生病: 'negative',
+    受伤: 'warning',
+    怀孕: 'secondary',
+    分娩: 'accent',
+    死亡: 'dark',
+    合同解除: 'primary',
   };
   return colors[type] || 'grey';
 }
@@ -1011,6 +1057,11 @@ async function loadData() {
     loading.value = false;
   }
 }
+
+// 监听设施和猫咪选择变化，自动刷新今日记录
+watch([selectedSite, selectedCat], () => {
+  void loadTodayRecords();
+});
 
 onMounted(() => {
   void loadData();

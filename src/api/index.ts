@@ -34,57 +34,66 @@ export interface PaginatedResponse<T> {
 }
 
 // ============ Cat API ============
-export interface Cat {
-  cat_id: number;
+export interface CatCreate {
   cat_name: string;
   cat_photo_uri: string;
   cat_type: string;
   cat_gender: string;
   master_name: string;
   master_phone_number: string;
-  created_at?: string;
+}
+
+export interface Cat extends CatCreate {
+  cat_id: number;
+  created_at: string; // 由后端自动生成
 }
 
 export const catApi = {
   list: (page = 1, pageSize = 10) =>
     request<PaginatedResponse<Cat>>(`/cats/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<Cat>(`/cats/${id}`),
-  create: (cat: Omit<Cat, 'cat_id' | 'created_at'>) =>
+  create: (cat: CatCreate) =>
     request<Cat>('/cats', { method: 'POST', body: JSON.stringify(cat) }),
-  update: (id: number, cat: Partial<Cat>) =>
+  update: (id: number, cat: Partial<CatCreate>) =>
     request<Cat>(`/cats/${id}`, { method: 'PUT', body: JSON.stringify(cat) }),
   delete: (id: number) => request<void>(`/cats/${id}`, { method: 'DELETE' }),
 };
 
 // ============ Site API ============
-export interface Site {
-  site_id: number;
+export interface SiteCreate {
   site_name: string;
   site_address: string;
   site_admin_phone_number: string;
-  created_at?: string;
+}
+
+export interface Site extends SiteCreate {
+  site_id: number;
+  created_at: string; // 由后端自动生成
 }
 
 export const siteApi = {
   list: (page = 1, pageSize = 10) =>
     request<PaginatedResponse<Site>>(`/sites/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<Site>(`/sites/${id}`),
-  create: (site: Omit<Site, 'site_id' | 'created_at'>) =>
+  create: (site: SiteCreate) =>
     request<Site>('/sites', { method: 'POST', body: JSON.stringify(site) }),
-  update: (id: number, site: Partial<Site>) =>
+  update: (id: number, site: Partial<SiteCreate>) =>
     request<Site>(`/sites/${id}`, { method: 'PUT', body: JSON.stringify(site) }),
   delete: (id: number) => request<void>(`/sites/${id}`, { method: 'DELETE' }),
 };
 
 // ============ Cat Action API ============
-export interface CatAction {
-  action_id: number;
+export interface CatActionCreate {
   cat_id: number;
   site_id: number;
   user_id: number;
   action_type: string;
   action_detail: string;
-  created_at: string;
+}
+
+export interface CatAction extends CatActionCreate {
+  action_id: number;
+  created_at: string; // 由后端自动生成
 }
 
 export const ACTION_TYPES = [
@@ -104,19 +113,22 @@ export const catActionApi = {
   getByCat: (catId: number) => request<CatAction[]>(`/cat-actions/cat/${catId}`),
   getBySite: (siteId: number) => request<CatAction[]>(`/cat-actions/site/${siteId}`),
   getByUser: (userId: number) => request<CatAction[]>(`/cat-actions/user/${userId}`),
-  create: (action: Omit<CatAction, 'action_id' | 'created_at'>) =>
+  create: (action: CatActionCreate) =>
     request<{ action: CatAction }>('/cat-actions', { method: 'POST', body: JSON.stringify(action) }),
 };
 
 // ============ Cat Event API ============
-export interface CatEvent {
-  event_id: number;
+export interface CatEventCreate {
   event_type: string;
   site_id: number;
   user_id: number;
   cat_id: number;
   detail: string;
-  created_at: string;
+}
+
+export interface CatEvent extends CatEventCreate {
+  event_id: number;
+  created_at: string; // 由后端自动生成
 }
 
 export const EVENT_TYPES = ['生病', '受伤', '怀孕', '分娩', '死亡', '合同解除'] as const;
@@ -127,9 +139,9 @@ export const catEventApi = {
   get: (id: number) => request<CatEvent>(`/cat-events/${id}`),
   getByCat: (catId: number) => request<CatEvent[]>(`/cat-events/cat/${catId}`),
   getBySite: (siteId: number) => request<CatEvent[]>(`/cat-events/site/${siteId}`),
-  create: (event: Omit<CatEvent, 'event_id' | 'created_at'>) =>
+  create: (event: CatEventCreate) =>
     request<{ event: CatEvent }>('/cat-events', { method: 'POST', body: JSON.stringify(event) }),
-  update: (id: number, event: Partial<CatEvent>) =>
+  update: (id: number, event: Partial<CatEventCreate>) =>
     request<CatEvent>(`/cat-events/${id}`, { method: 'PUT', body: JSON.stringify(event) }),
   delete: (id: number) => request<void>(`/cat-events/${id}`, { method: 'DELETE' }),
 };
@@ -172,14 +184,17 @@ export const siteFsmApi = {
 // ============ Site Action API ============
 export type SiteActionType = '消毒' | '喂食' | '喂水' | '逗猫' | '清理猫砂';
 
-export interface SiteAction {
-  action_id: number;
+export interface SiteActionCreate {
   site_id: number;
   user_id: number;
   action_type: SiteActionType;
   action_detail: string;
-  created_at: string;
-  updated_at: string;
+}
+
+export interface SiteAction extends SiteActionCreate {
+  action_id: number;
+  created_at: string; // 由后端自动生成
+  updated_at: string; // 由后端自动生成
 }
 
 export const SITE_ACTION_TYPES: SiteActionType[] = ['消毒', '喂食', '喂水', '逗猫', '清理猫砂'];
@@ -190,6 +205,6 @@ export const siteActionApi = {
   get: (id: number) => request<SiteAction>(`/site-actions/${id}`),
   getBySite: (siteId: number) => request<SiteAction[]>(`/site-actions/site/${siteId}`),
   getByUser: (userId: number) => request<SiteAction[]>(`/site-actions/user/${userId}`),
-  create: (action: Omit<SiteAction, 'action_id' | 'created_at' | 'updated_at'>) =>
+  create: (action: SiteActionCreate) =>
     request<{ action: SiteAction }>('/site-actions', { method: 'POST', body: JSON.stringify(action) }),
 };

@@ -415,12 +415,17 @@ import {
   siteFsmApi,
   siteActionApi,
   type Cat,
+  type CatCreate,
   type Site,
+  type SiteCreate,
   type CatAction,
+  type CatActionCreate,
   type CatEvent,
+  type CatEventCreate,
   type CatFSM,
   type SiteFSM,
   type SiteAction,
+  type SiteActionCreate,
 } from 'src/api';
 
 type TableRow = Cat | Site | CatAction | CatEvent | CatFSM | SiteFSM | SiteAction;
@@ -505,7 +510,7 @@ const tables = ref<TableDef[]>([
       { name: 'cat_photo_uri', label: '照片', field: 'cat_photo_uri', type: 'url', required: true, editable: true },
       { name: 'master_name', label: '主人', field: 'master_name', align: 'left', type: 'string', required: true, editable: true },
       { name: 'master_phone_number', label: '主人电话', field: 'master_phone_number', type: 'phone', required: true, editable: true },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
     ],
   },
   {
@@ -519,7 +524,7 @@ const tables = ref<TableDef[]>([
       { name: 'site_name', label: '名称', field: 'site_name', align: 'left', sortable: true, type: 'string', required: true, editable: true },
       { name: 'site_address', label: '地址', field: 'site_address', align: 'left', type: 'string', required: true, editable: true },
       { name: 'site_admin_phone_number', label: '管理员电话', field: 'site_admin_phone_number', type: 'phone', required: true, editable: false },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
     ],
   },
   {
@@ -536,7 +541,7 @@ const tables = ref<TableDef[]>([
       { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: true },
       { name: 'action_type', label: '动作类型', field: 'action_type', align: 'left', type: 'select', options: ['测体温', '绝育', '体检', '驱虫', '修剪指甲', '洗澡', '疫苗'], required: true, editable: true },
       { name: 'action_detail', label: '详情', field: 'action_detail', type: 'json', required: true, editable: true },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
     ],
   },
   {
@@ -552,7 +557,7 @@ const tables = ref<TableDef[]>([
       { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: false },
       { name: 'event_type', label: '事件类型', field: 'event_type', align: 'left', type: 'select', options: ['生病', '受伤', '怀孕', '分娩', '死亡', '合同解除'], required: true, editable: false },
       { name: 'detail', label: '详情', field: 'detail', type: 'textarea', required: true, editable: false },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
     ],
   },
   {
@@ -599,8 +604,8 @@ const tables = ref<TableDef[]>([
       { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: true },
       { name: 'action_type', label: '动作类型', field: 'action_type', align: 'left', type: 'select', options: ['消毒', '喂食', '喂水', '逗猫', '清理猫砂'], required: true, editable: true },
       { name: 'action_detail', label: '详情', field: 'action_detail', type: 'textarea', required: true, editable: true },
-      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
-      { name: 'updated_at', label: '更新时间', field: 'updated_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', sortable: true, editable: false },
+      { name: 'updated_at', label: '更新时间', field: 'updated_at', align: 'left', type: 'time', sortable: true, editable: false },
     ],
   },
 ]);
@@ -622,8 +627,11 @@ const currentColumns = computed(() => {
 });
 
 const editableColumns = computed(() => {
-  // 表单显示：必填字段 + 可编辑字段
-  return currentTable.value?.columns.filter((col) => col.required || col.editable) || [];
+  // 表单显示：必填字段 + 可编辑字段，排除系统自动生成的字段
+  return currentTable.value?.columns.filter((col) => 
+    (col.required || col.editable) && 
+    !['created_at', 'updated_at'].includes(col.name)
+  ) || [];
 });
 
 // Get action detail fields based on current action_type
@@ -888,33 +896,33 @@ async function onSave() {
         if (isEdit) {
           await catApi.update(id!, data);
         } else {
-          await catApi.create(data as Omit<Cat, 'cat_id' | 'created_at'>);
+          await catApi.create(data as unknown as CatCreate);
         }
         break;
       case 'sites':
         if (isEdit) {
           await siteApi.update(id!, data);
         } else {
-          await siteApi.create(data as Omit<Site, 'site_id' | 'created_at'>);
+          await siteApi.create(data as unknown as SiteCreate);
         }
         break;
       case 'cat_actions':
         // 只支持创建，不支持编辑
         if (!isEdit) {
-          await catActionApi.create(data as Omit<CatAction, 'action_id' | 'created_at'>);
+          await catActionApi.create(data as unknown as CatActionCreate);
         }
         break;
       case 'cat_events':
         if (isEdit) {
           await catEventApi.update(id!, data);
         } else {
-          await catEventApi.create(data as Omit<CatEvent, 'event_id' | 'created_at'>);
+          await catEventApi.create(data as unknown as CatEventCreate);
         }
         break;
       case 'site_actions':
         // 只支持创建，不支持编辑
         if (!isEdit) {
-          await siteActionApi.create(data as Omit<SiteAction, 'action_id' | 'created_at' | 'updated_at'>);
+          await siteActionApi.create(data as unknown as SiteActionCreate);
         }
         break;
     }

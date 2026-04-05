@@ -794,7 +794,7 @@ async function submitTemperature() {
       site_id: selectedSite.value,
       user_id: authStore.user?.id || 0,
       action_type: '测体温',
-      action_detail: JSON.stringify({ temperature: temperatureDialog.value.value }),
+      action_detail: JSON.stringify({ temperature_c: temperatureDialog.value.value }),
     });
 
     $q.notify({

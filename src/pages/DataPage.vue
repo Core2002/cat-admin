@@ -447,10 +447,10 @@ interface ActionDetailField {
 }
 
 const actionDetailFields: Record<string, ActionDetailField[]> = {
-  '测体温': [{ key: 'temperature', label: '体温', type: 'number', unit: '℃' }],
+  '测体温': [{ key: 'temperature_c', label: '体温', type: 'number', unit: '℃' }],
   '绝育': [{ key: 'notes', label: '备注', type: 'string' }],
   '体检': [
-    { key: 'temperature', label: '体温', type: 'number', unit: '℃' },
+    { key: 'temperature_c', label: '体温', type: 'number', unit: '℃' },
     { key: 'weight', label: '体重', type: 'number', unit: 'kg' },
     { key: 'notes', label: '备注', type: 'string' },
   ],

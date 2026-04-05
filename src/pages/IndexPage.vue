@@ -307,8 +307,14 @@
     </template>
 
     <!-- 详情对话框 -->
-    <q-dialog v-model="detailDialog.show">
-      <q-card style="min-width: 400px; max-width: 600px">
+    <q-dialog
+      v-model="detailDialog.show"
+      seamless
+      position="standard"
+      @show="onDialogShow"
+      @before-hide="onBeforeHide"
+    >
+      <q-card style="min-width: 400px; max-width: 600px; box-shadow: 0 8px 32px rgba(0,0,0,0.3)">
         <q-card-section class="row items-center q-pb-none">
           <q-item-label header class="text-h6 q-pa-none">{{ detailDialog.title }}</q-item-label>
           <q-space />
@@ -667,6 +673,25 @@ function showEventDetail(event: CatEvent) {
     type: 'event',
     title: event.event_type,
   };
+}
+
+// 对话框显示后立即管理焦点
+function onDialogShow() {
+  // seamless 模式下没有背景层，直接设置焦点到关闭按钮
+  const closeBtn = document.querySelector('.q-dialog__inner .q-btn') as HTMLElement;
+  if (closeBtn) {
+    closeBtn.focus();
+  }
+}
+
+// 对话框关闭前移除焦点
+function onBeforeHide() {
+  // 将焦点移到 body，避免 aria-hidden 警告
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+  // 确保焦点完全移除
+  document.body.focus();
 }
 
 // 加载数据

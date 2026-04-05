@@ -1,5 +1,5 @@
 import { defineBoot } from '#q-app/wrappers';
-import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
+import type { RouteLocationNormalized } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth';
 
 interface RouteMeta {
@@ -14,11 +14,7 @@ export default defineBoot(({ router }) => {
   const authPromise = authStore.fetchProfile();
 
   router.beforeEach(
-    async (
-      to: RouteLocationNormalized & { matched: Array<{ meta: RouteMeta }> },
-      _from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
+    async (to: RouteLocationNormalized & { matched: Array<{ meta: RouteMeta }> }) => {
       // 等待初始化完成
       await authPromise;
 
@@ -27,17 +23,13 @@ export default defineBoot(({ router }) => {
 
       // 如果需要认证但未登录
       if (requiresAuth && !authStore.isAuthenticated) {
-        next('/login');
-        return;
+        return '/login';
       }
 
       // 如果已登录但访问登录页
       if (isGuestRoute && authStore.isAuthenticated) {
-        next('/');
-        return;
+        return '/';
       }
-
-      next();
     }
   );
 });

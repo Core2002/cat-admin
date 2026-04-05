@@ -1,1 +1,39 @@
 // app global css in SCSS form
+
+// 修复 Quasar Dialog aria-hidden 警告
+// 完全禁用背景层过渡动画
+.q-dialog__backdrop {
+  animation: none !important;
+  transition: none !important;
+  opacity: 0.6 !important;
+  
+  &:focus {
+    outline: none;
+  }
+  
+  // 移除所有过渡类
+  &.q-transition--fade-enter-active,
+  &.q-transition--fade-enter-to,
+  &.q-transition--fade-leave-active,
+  &.q-transition--fade-leave-to,
+  &.q-transition--fade-enter,
+  &.q-transition--fade-leave {
+    animation: none !important;
+    transition: none !important;
+    opacity: 0.6 !important;
+  }
+}
+
+// 完全禁用对话框过渡
+.q-dialog__inner {
+  animation: none !important;
+  transition: none !important;
+  
+  &.q-transition--fade-enter-active,
+  &.q-transition--fade-enter-to,
+  &.q-transition--fade-leave-active,
+  &.q-transition--fade-leave-to {
+    animation: none !important;
+    transition: none !important;
+  }
+}

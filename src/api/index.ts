@@ -106,9 +106,6 @@ export const catActionApi = {
   getByUser: (userId: number) => request<CatAction[]>(`/cat-actions/user/${userId}`),
   create: (action: Omit<CatAction, 'action_id' | 'created_at'>) =>
     request<{ action: CatAction }>('/cat-actions', { method: 'POST', body: JSON.stringify(action) }),
-  update: (id: number, action: Partial<CatAction>) =>
-    request<CatAction>(`/cat-actions/${id}`, { method: 'PUT', body: JSON.stringify(action) }),
-  delete: (id: number) => request<void>(`/cat-actions/${id}`, { method: 'DELETE' }),
 };
 
 // ============ Cat Event API ============
@@ -152,26 +149,6 @@ export const catFsmApi = {
     request<PaginatedResponse<CatFSM>>(`/cat-fsms/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<CatFSM>(`/cat-fsms/${id}`),
   getBySite: (siteId: number) => request<CatFSM[]>(`/cat-fsms/site/${siteId}`),
-  create: (fsm: Omit<CatFSM, 'id'>) =>
-    request<CatFSM>('/cat-fsms', { method: 'POST', body: JSON.stringify(fsm) }),
-  update: (id: number, fsm: Partial<CatFSM>) =>
-    request<CatFSM>(`/cat-fsms/${id}`, { method: 'PUT', body: JSON.stringify(fsm) }),
-  delete: (id: number) => request<void>(`/cat-fsms/${id}`, { method: 'DELETE' }),
-  updateTemperature: (catId: number, temperature_c: number) =>
-    request<CatFSM>(`/cat-fsms/${catId}/temperature`, {
-      method: 'PATCH',
-      body: JSON.stringify({ temperature_c }),
-    }),
-  updateWeight: (catId: number, weight_kg: number) =>
-    request<CatFSM>(`/cat-fsms/${catId}/weight`, {
-      method: 'PATCH',
-      body: JSON.stringify({ weight_kg }),
-    }),
-  updateTrimNailsTime: (catId: number, trim_nails_time: string) =>
-    request<CatFSM>(`/cat-fsms/${catId}/trim-nails-time`, {
-      method: 'PATCH',
-      body: JSON.stringify({ trim_nails_time }),
-    }),
 };
 
 // ============ Site FSM API ============
@@ -190,36 +167,6 @@ export const siteFsmApi = {
     request<PaginatedResponse<SiteFSM>>(`/site-fsms/page?page=${page}&page_size=${pageSize}`),
   get: (id: number) => request<SiteFSM>(`/site-fsms/${id}`),
   getBySite: (siteId: number) => request<SiteFSM>(`/site-fsms/site/${siteId}`),
-  create: (fsm: Omit<SiteFSM, 'id'>) =>
-    request<SiteFSM>('/site-fsms', { method: 'POST', body: JSON.stringify(fsm) }),
-  update: (id: number, fsm: Partial<SiteFSM>) =>
-    request<SiteFSM>(`/site-fsms/${id}`, { method: 'PUT', body: JSON.stringify(fsm) }),
-  delete: (id: number) => request<void>(`/site-fsms/${id}`, { method: 'DELETE' }),
-  updateDisinfectTime: (siteId: number, last_disinfect_time: string) =>
-    request<SiteFSM>(`/site-fsms/${siteId}/disinfect-time`, {
-      method: 'PATCH',
-      body: JSON.stringify({ last_disinfect_time }),
-    }),
-  updateFeedTime: (siteId: number, last_feed_time: string) =>
-    request<SiteFSM>(`/site-fsms/${siteId}/feed-time`, {
-      method: 'PATCH',
-      body: JSON.stringify({ last_feed_time }),
-    }),
-  updateGiveWaterTime: (siteId: number, last_give_water_time: string) =>
-    request<SiteFSM>(`/site-fsms/${siteId}/give-water-time`, {
-      method: 'PATCH',
-      body: JSON.stringify({ last_give_water_time }),
-    }),
-  updatePlayTime: (siteId: number, last_play_time: string) =>
-    request<SiteFSM>(`/site-fsms/${siteId}/play-time`, {
-      method: 'PATCH',
-      body: JSON.stringify({ last_play_time }),
-    }),
-  updateCleanLitterTime: (siteId: number, last_clean_litter_time: string) =>
-    request<SiteFSM>(`/site-fsms/${siteId}/clean-litter-time`, {
-      method: 'PATCH',
-      body: JSON.stringify({ last_clean_litter_time }),
-    }),
 };
 
 // ============ Site Action API ============
@@ -245,7 +192,4 @@ export const siteActionApi = {
   getByUser: (userId: number) => request<SiteAction[]>(`/site-actions/user/${userId}`),
   create: (action: Omit<SiteAction, 'action_id' | 'created_at' | 'updated_at'>) =>
     request<{ action: SiteAction }>('/site-actions', { method: 'POST', body: JSON.stringify(action) }),
-  update: (id: number, action: Partial<SiteAction>) =>
-    request<SiteAction>(`/site-actions/${id}`, { method: 'PUT', body: JSON.stringify(action) }),
-  delete: (id: number) => request<void>(`/site-actions/${id}`, { method: 'DELETE' }),
 };

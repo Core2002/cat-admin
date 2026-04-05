@@ -55,7 +55,7 @@
         </q-toolbar-title>
         <q-btn-group v-if="currentTable" flat>
           <q-btn flat icon="refresh" label="刷新" @click="loadData" />
-          <q-btn color="primary" icon="add" label="新增" @click="onAdd" />
+          <q-btn v-if="!currentTable.readonly" color="primary" icon="add" label="新增" @click="onAdd" />
         </q-btn-group>
       </q-toolbar>
 
@@ -199,10 +199,10 @@
 
           <template #body-cell-actions="props">
             <q-td :props="props">
-              <q-btn flat round dense icon="edit" size="sm" @click="onEdit(props.row)">
+              <q-btn v-if="!currentTable?.readonly && !currentTable?.canCreate" flat round dense icon="edit" size="sm" @click="onEdit(props.row)">
                 <q-tooltip>编辑</q-tooltip>
               </q-btn>
-              <q-btn flat round dense icon="delete" size="sm" color="negative" @click="onDelete(props.row)">
+              <q-btn v-if="!currentTable?.readonly && !currentTable?.canCreate" flat round dense icon="delete" size="sm" color="negative" @click="onDelete(props.row)">
                 <q-tooltip>删除</q-tooltip>
               </q-btn>
             </q-td>
@@ -473,6 +473,8 @@ interface TableDef {
   primaryKey: string;
   columns: ColumnDef[];
   count: number;
+  readonly?: boolean; // 完全只读
+  canCreate?: boolean; // 只能创建，不能编辑/删除
 }
 
 const sidebarOpen = ref(true);
@@ -526,6 +528,7 @@ const tables = ref<TableDef[]>([
     icon: 'history',
     primaryKey: 'action_id',
     count: 0,
+    canCreate: true,
     columns: [
       { name: 'action_id', label: '操作ID', field: 'action_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', type: 'number', required: true, editable: true },
@@ -558,6 +561,7 @@ const tables = ref<TableDef[]>([
     icon: 'settings_suggest',
     primaryKey: 'cat_id',
     count: 0,
+    readonly: true,
     columns: [
       { name: 'cat_id', label: '猫咪ID', field: 'cat_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: false },
@@ -572,6 +576,7 @@ const tables = ref<TableDef[]>([
     icon: 'tune',
     primaryKey: 'site_id',
     count: 0,
+    readonly: true,
     columns: [
       { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'last_disinfect_time', label: '上次消毒', field: 'last_disinfect_time', align: 'left', type: 'time', required: true, editable: false },
@@ -587,6 +592,7 @@ const tables = ref<TableDef[]>([
     icon: 'construction',
     primaryKey: 'action_id',
     count: 0,
+    canCreate: true,
     columns: [
       { name: 'action_id', label: '操作ID', field: 'action_id', align: 'left', sortable: true, type: 'number', editable: false },
       { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: true },
@@ -893,9 +899,8 @@ async function onSave() {
         }
         break;
       case 'cat_actions':
-        if (isEdit) {
-          await catActionApi.update(id!, data);
-        } else {
+        // 只支持创建，不支持编辑
+        if (!isEdit) {
           await catActionApi.create(data as Omit<CatAction, 'action_id' | 'created_at'>);
         }
         break;
@@ -906,24 +911,9 @@ async function onSave() {
           await catEventApi.create(data as Omit<CatEvent, 'event_id' | 'created_at'>);
         }
         break;
-      case 'cat_fsms':
-        if (isEdit) {
-          await catFsmApi.update(id!, data);
-        } else {
-          await catFsmApi.create(data as Omit<CatFSM, 'id'>);
-        }
-        break;
-      case 'site_fsms':
-        if (isEdit) {
-          await siteFsmApi.update(id!, data);
-        } else {
-          await siteFsmApi.create(data as Omit<SiteFSM, 'id'>);
-        }
-        break;
       case 'site_actions':
-        if (isEdit) {
-          await siteActionApi.update(id!, data);
-        } else {
+        // 只支持创建，不支持编辑
+        if (!isEdit) {
           await siteActionApi.create(data as Omit<SiteAction, 'action_id' | 'created_at' | 'updated_at'>);
         }
         break;
@@ -953,20 +943,8 @@ async function onDelete(row: TableRow) {
       case 'sites':
         await siteApi.delete(id);
         break;
-      case 'cat_actions':
-        await catActionApi.delete(id);
-        break;
       case 'cat_events':
         await catEventApi.delete(id);
-        break;
-      case 'cat_fsms':
-        await catFsmApi.delete(id);
-        break;
-      case 'site_fsms':
-        await siteFsmApi.delete(id);
-        break;
-      case 'site_actions':
-        await siteActionApi.delete(id);
         break;
     }
 
@@ -1036,6 +1014,8 @@ function showImagePreview(url: string) {
 
 // Popup Edit helpers
 function isEditableColumn(name: string): boolean {
+  // readonly 和 canCreate 表不允许内联编辑
+  if (currentTable.value?.readonly || currentTable.value?.canCreate) return false;
   const col = currentTable.value?.columns.find((c) => c.name === name);
   return col?.editable === true && !isTimeField(name);
 }
@@ -1072,15 +1052,6 @@ async function onPopupSave(row: TableRow, field: string, newValue: unknown) {
         break;
       case 'sites':
         await siteApi.update(id, data);
-        break;
-      case 'cat_fsms':
-        await catFsmApi.update(id, data);
-        break;
-      case 'site_fsms':
-        await siteFsmApi.update(id, data);
-        break;
-      case 'site_actions':
-        await siteActionApi.update(id, data);
         break;
       default:
         return;

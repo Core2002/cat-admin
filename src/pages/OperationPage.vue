@@ -511,10 +511,10 @@ import {
   siteApi,
   catActionApi,
   catEventApi,
-  catFsmApi,
-  siteFsmApi,
+  siteActionApi,
   type Cat,
   type Site,
+  type SiteActionType,
 } from 'src/api';
 import { useAuthStore } from 'src/stores/auth';
 
@@ -650,21 +650,30 @@ function quickAction(action: string) {
   }).onOk(() => {
     void (async () => {
       try {
-        const now = toLocalISOString(new Date());
-
-        // 设施操作 - 使用专门的 PATCH API
+        // 设施操作 - 创建 SiteAction 记录，由后端驱动状态机
         if (isFacilityAction && selectedSite.value) {
-          if (action === 'feed') {
-            await siteFsmApi.updateFeedTime(selectedSite.value, now);
-          } else if (action === 'water') {
-            await siteFsmApi.updateGiveWaterTime(selectedSite.value, now);
-          } else if (action === 'disinfect') {
-            await siteFsmApi.updateDisinfectTime(selectedSite.value, now);
-          } else if (action === 'play') {
-            await siteFsmApi.updatePlayTime(selectedSite.value, now);
-          } else if (action === 'litter') {
-            await siteFsmApi.updateCleanLitterTime(selectedSite.value, now);
-          }
+          const actionTypeMap: Record<string, SiteActionType> = {
+            feed: '喂食',
+            water: '喂水',
+            disinfect: '消毒',
+            play: '逗猫',
+            litter: '清理猫砂',
+          };
+
+          const actionDetailMap: Record<string, string> = {
+            feed: JSON.stringify({ note: '通过操作台快速记录' }),
+            water: JSON.stringify({ note: '通过操作台快速记录' }),
+            disinfect: JSON.stringify({ note: '通过操作台快速记录' }),
+            play: JSON.stringify({ note: '通过操作台快速记录' }),
+            litter: JSON.stringify({ note: '通过操作台快速记录' }),
+          };
+
+          await siteActionApi.create({
+            site_id: selectedSite.value,
+            user_id: authStore.user?.id || 0,
+            action_type: actionTypeMap[action]!,
+            action_detail: actionDetailMap[action]!,
+          });
         }
 
         // 猫咪操作
@@ -743,7 +752,15 @@ function openWeightDialog() {
           return;
         }
 
-        await catFsmApi.updateWeight(selectedCat.value, weight);
+        if (!selectedSite.value) return;
+
+        await catActionApi.create({
+          cat_id: selectedCat.value,
+          site_id: selectedSite.value,
+          user_id: authStore.user?.id || 0,
+          action_type: '称重',
+          action_detail: JSON.stringify({ weight_kg: weight }),
+        });
 
         $q.notify({
           type: 'positive',
@@ -771,10 +788,7 @@ async function submitTemperature() {
 
   temperatureDialog.value.loading = true;
   try {
-    // 更新体温
-    await catFsmApi.updateTemperature(selectedCat.value, temperatureDialog.value.value);
-
-    // 创建操作记录
+    // 创建操作记录（后端会驱动FSM更新）
     await catActionApi.create({
       cat_id: selectedCat.value,
       site_id: selectedSite.value,
@@ -879,39 +893,28 @@ async function loadTodayRecords() {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-    
+
     const records: TodayRecord[] = [];
 
-    // 加载今日设施操作记录
+    // 加载今日设施操作记录（从 SiteAction 表读取）
     if (selectedSite.value) {
-      const siteFsm = await siteFsmApi.get(selectedSite.value);
-      if (siteFsm) {
-        // 检查各项设施操作时间是否为今天
-        const facilityActions = [
-          { time: siteFsm.last_feed_time, title: '喂食', icon: 'restaurant', color: 'primary' },
-          { time: siteFsm.last_give_water_time, title: '喂水', icon: 'water_drop', color: 'info' },
-          { time: siteFsm.last_disinfect_time, title: '消毒清洁', icon: 'cleaning_services', color: 'positive' },
-          { time: siteFsm.last_play_time, title: '互动玩耍', icon: 'sports_esports', color: 'secondary' },
-          { time: siteFsm.last_clean_litter_time, title: '清理猫砂', icon: 'delete_outline', color: 'accent' },
-        ];
+      const siteActions = await siteActionApi.getBySite(selectedSite.value);
+      const todaySiteActions = siteActions.filter((a) => {
+        const actionDate = new Date(a.created_at);
+        return actionDate >= todayStart && actionDate < todayEnd;
+      });
 
-        facilityActions.forEach((action) => {
-          if (action.time) {
-            const actionDate = new Date(action.time);
-            if (actionDate >= todayStart && actionDate < todayEnd) {
-              records.push({
-                id: `facility-${action.title}-${action.time}`,
-                title: action.title,
-                subtitle: getSiteName(selectedSite.value!),
-                time: formatTime(action.time),
-                timestamp: actionDate,
-                icon: action.icon,
-                color: action.color,
-              });
-            }
-          }
+      todaySiteActions.forEach((action) => {
+        records.push({
+          id: `site-action-${action.action_id}`,
+          title: action.action_type,
+          subtitle: getSiteName(action.site_id),
+          time: formatTime(action.created_at),
+          timestamp: new Date(action.created_at),
+          icon: getSiteActionIcon(action.action_type),
+          color: getSiteActionColor(action.action_type),
         });
-      }
+      });
     }
 
     // 加载今日猫咪操作记录
@@ -965,18 +968,6 @@ async function loadTodayRecords() {
   }
 }
 
-// 辅助函数 - 获取本地时区的 ISO 时间字符串 (UTC+8)
-function toLocalISOString(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
-  const seconds = pad(date.getSeconds());
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`;
-}
-
 function getCatName(catId: number) {
   const cat = cats.value.find((c) => c.cat_id === catId);
   return cat?.cat_name || `猫咪 #${catId}`;
@@ -1014,6 +1005,28 @@ function getActionColor(type: string) {
     修剪指甲: 'secondary',
     洗澡: 'info',
     疫苗: 'negative',
+  };
+  return colors[type] || 'grey';
+}
+
+function getSiteActionIcon(type: string) {
+  const icons: Record<string, string> = {
+    喂食: 'restaurant',
+    喂水: 'water_drop',
+    消毒: 'cleaning_services',
+    逗猫: 'sports_esports',
+    清理猫砂: 'delete_outline',
+  };
+  return icons[type] || 'build';
+}
+
+function getSiteActionColor(type: string) {
+  const colors: Record<string, string> = {
+    喂食: 'primary',
+    喂水: 'info',
+    消毒: 'positive',
+    逗猫: 'secondary',
+    清理猫砂: 'accent',
   };
   return colors[type] || 'grey';
 }

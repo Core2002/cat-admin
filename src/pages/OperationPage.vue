@@ -886,6 +886,16 @@ async function submitEvent() {
   }
 }
 
+// 解析时间字符串为 Date 对象（处理时区）
+function parseDate(timeStr: string): Date {
+  let dateStr = timeStr;
+  // ISO 格式但不带时区后缀 (Z 或 +/-HH:MM)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    dateStr = dateStr + 'Z';
+  }
+  return new Date(dateStr);
+}
+
 // 加载今日记录
 async function loadTodayRecords() {
   try {
@@ -900,7 +910,7 @@ async function loadTodayRecords() {
     if (selectedSite.value) {
       const siteActions = await siteActionApi.getBySite(selectedSite.value);
       const todaySiteActions = siteActions.filter((a) => {
-        const actionDate = new Date(a.created_at);
+        const actionDate = parseDate(a.created_at);
         return actionDate >= todayStart && actionDate < todayEnd;
       });
 
@@ -910,7 +920,7 @@ async function loadTodayRecords() {
           title: action.action_type,
           subtitle: getSiteName(action.site_id),
           time: formatTime(action.created_at),
-          timestamp: new Date(action.created_at),
+          timestamp: parseDate(action.created_at),
           icon: getSiteActionIcon(action.action_type),
           color: getSiteActionColor(action.action_type),
         });
@@ -921,7 +931,7 @@ async function loadTodayRecords() {
     if (selectedCat.value) {
       const actions = await catActionApi.getByCat(selectedCat.value);
       const todayActions = actions.filter((a) => {
-        const actionDate = new Date(a.created_at);
+        const actionDate = parseDate(a.created_at);
         return actionDate >= todayStart && actionDate < todayEnd;
       });
 
@@ -931,7 +941,7 @@ async function loadTodayRecords() {
           title: action.action_type,
           subtitle: getCatName(action.cat_id),
           time: formatTime(action.created_at),
-          timestamp: new Date(action.created_at),
+          timestamp: parseDate(action.created_at),
           icon: getActionIcon(action.action_type),
           color: getActionColor(action.action_type),
         });
@@ -942,7 +952,7 @@ async function loadTodayRecords() {
     if (selectedCat.value) {
       const events = await catEventApi.getByCat(selectedCat.value);
       const todayEvents = events.filter((e) => {
-        const eventDate = new Date(e.created_at);
+        const eventDate = parseDate(e.created_at);
         return eventDate >= todayStart && eventDate < todayEnd;
       });
 
@@ -952,7 +962,7 @@ async function loadTodayRecords() {
           title: event.event_type,
           subtitle: event.detail || getCatName(event.cat_id),
           time: formatTime(event.created_at),
-          timestamp: new Date(event.created_at),
+          timestamp: parseDate(event.created_at),
           icon: getEventIcon(event.event_type),
           color: getEventColor(event.event_type),
         });
@@ -979,7 +989,13 @@ function getSiteName(siteId: number) {
 }
 
 function formatTime(timeStr: string) {
-  const date = new Date(timeStr);
+  // 处理时区：如果时间字符串不包含时区信息，假定其为 UTC 时间
+  let dateStr = timeStr;
+  // ISO 格式但不带时区后缀 (Z 或 +/-HH:MM)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    dateStr = dateStr + 'Z'; // 添加 Z 后缀，让 JS 把它当作 UTC 时间
+  }
+  const date = new Date(dateStr);
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 

@@ -975,8 +975,14 @@ function isTimeField(name: string): boolean {
 
 function formatDateTimeLocal(value: string | null | undefined): string {
   if (!value) return '';
+  // 处理时区：如果时间字符串不包含时区信息，假定其为 UTC 时间
+  let dateStr = value;
+  // ISO 格式但不带时区后缀 (Z 或 +/-HH:MM)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    dateStr = dateStr + 'Z';
+  }
   // Convert ISO datetime to datetime-local format (YYYY-MM-DDTHH:mm)
-  const date = new Date(value);
+  const date = new Date(dateStr);
   if (isNaN(date.getTime())) return '';
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1004,7 +1010,22 @@ function formatActionDetail(value: unknown): string {
 
 function formatTime(value: string | null | undefined): string {
   if (!value) return '-';
-  return new Date(value).toLocaleString('zh-CN');
+  // 处理时区：如果时间字符串不包含时区信息，假定其为 UTC 时间
+  let dateStr = value;
+  // ISO 格式但不带时区后缀 (Z 或 +/-HH:MM)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    dateStr = dateStr + 'Z'; // 添加 Z 后缀，让 JS 把它当作 UTC 时间
+  }
+  const date = new Date(dateStr);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
 }
 
 function showDetail(title: string, content: string) {

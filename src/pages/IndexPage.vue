@@ -492,12 +492,12 @@ const maxActionCount = computed(() => {
 
 // 最近操作记录
 const recentActions = computed(() => {
-  return [...actions.value].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
+  return [...actions.value].sort((a, b) => parseDate(b.created_at).getTime() - parseDate(a.created_at).getTime()).slice(0, 5);
 });
 
 // 最近事件记录
 const recentEvents = computed(() => {
-  return [...events.value].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
+  return [...events.value].sort((a, b) => parseDate(b.created_at).getTime() - parseDate(a.created_at).getTime()).slice(0, 5);
 });
 
 // 需要关注的猫咪
@@ -521,7 +521,7 @@ const alertCats = computed(() => {
   const recentProblemEvents = events.value.filter(
     (e) =>
       (e.event_type === '生病' || e.event_type === '受伤') &&
-      Date.now() - new Date(e.created_at).getTime() < 7 * 24 * 60 * 60 * 1000
+      Date.now() - parseDate(e.created_at).getTime() < 7 * 24 * 60 * 60 * 1000
   );
 
   recentProblemEvents.forEach((event) => {
@@ -545,7 +545,13 @@ function getCatName(catId: number) {
 
 // 格式化时间
 function formatTime(timeStr: string) {
-  const date = new Date(timeStr);
+  // 处理时区：如果时间字符串不包含时区信息，假定其为 UTC 时间
+  let dateStr = timeStr;
+  // ISO 格式但不带时区后缀 (Z 或 +/-HH:MM)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    dateStr = dateStr + 'Z'; // 添加 Z 后缀，让 JS 把它当作 UTC 时间
+  }
+  const date = new Date(dateStr);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
 
@@ -555,6 +561,16 @@ function formatTime(timeStr: string) {
   if (diff < 7 * 24 * 60 * 60 * 1000) return `${Math.floor(diff / 86400000)} 天前`;
 
   return date.toLocaleDateString('zh-CN');
+}
+
+// 解析时间字符串为 Date 对象（处理时区）
+function parseDate(timeStr: string): Date {
+  let dateStr = timeStr;
+  // ISO 格式但不带时区后缀 (Z 或 +/-HH:MM)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    dateStr = dateStr + 'Z';
+  }
+  return new Date(dateStr);
 }
 
 // 获取操作类型颜色
@@ -739,13 +755,13 @@ async function loadData() {
     // 今日操作
     const today = new Date().toDateString();
     stats.value.todayActions = actions.value.filter(
-      (a) => a.created_at && new Date(a.created_at).toDateString() === today
+      (a) => a.created_at && parseDate(a.created_at).toDateString() === today
     ).length;
 
     // 待处理事件（最近7天的事件）
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     stats.value.pendingEvents = events.value.filter(
-      (e) => e.created_at && new Date(e.created_at).getTime() > weekAgo
+      (e) => e.created_at && parseDate(e.created_at).getTime() > weekAgo
     ).length;
 
     console.log('统计数据:', stats.value);

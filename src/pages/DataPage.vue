@@ -413,15 +413,17 @@ import {
   catEventApi,
   catFsmApi,
   siteFsmApi,
+  siteActionApi,
   type Cat,
   type Site,
   type CatAction,
   type CatEvent,
   type CatFSM,
   type SiteFSM,
+  type SiteAction,
 } from 'src/api';
 
-type TableRow = Cat | Site | CatAction | CatEvent | CatFSM | SiteFSM;
+type TableRow = Cat | Site | CatAction | CatEvent | CatFSM | SiteFSM | SiteAction;
 
 interface ColumnDef {
   name: string;
@@ -576,7 +578,23 @@ const tables = ref<TableDef[]>([
       { name: 'last_feed_time', label: '上次喂食', field: 'last_feed_time', align: 'left', type: 'time', required: true, editable: false },
       { name: 'last_give_water_time', label: '上次喂水', field: 'last_give_water_time', align: 'left', type: 'time', required: true, editable: false },
       { name: 'last_play_time', label: '上次逗猫', field: 'last_play_time', align: 'left', type: 'time', required: true, editable: false },
-      { name: 'last_clean_litter', label: '上次清理猫砂', field: 'last_clean_litter', align: 'left', type: 'time', required: true, editable: false },
+      { name: 'last_clean_litter_time', label: '上次清理猫砂', field: 'last_clean_litter_time', align: 'left', type: 'time', required: true, editable: false },
+    ],
+  },
+  {
+    name: 'site_actions',
+    label: '设施操作记录',
+    icon: 'construction',
+    primaryKey: 'action_id',
+    count: 0,
+    columns: [
+      { name: 'action_id', label: '操作ID', field: 'action_id', align: 'left', sortable: true, type: 'number', editable: false },
+      { name: 'site_id', label: '设施ID', field: 'site_id', align: 'left', type: 'number', required: true, editable: true },
+      { name: 'user_id', label: '用户ID', field: 'user_id', align: 'left', type: 'number', required: true, editable: true },
+      { name: 'action_type', label: '动作类型', field: 'action_type', align: 'left', type: 'select', options: ['消毒', '喂食', '喂水', '逗猫', '清理猫砂'], required: true, editable: true },
+      { name: 'action_detail', label: '详情', field: 'action_detail', type: 'textarea', required: true, editable: true },
+      { name: 'created_at', label: '创建时间', field: 'created_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
+      { name: 'updated_at', label: '更新时间', field: 'updated_at', align: 'left', type: 'time', required: true, sortable: true, editable: false },
     ],
   },
 ]);
@@ -638,6 +656,7 @@ const imagePreview = ref({
 function onSelectTable(tableName: string) {
   selectedTable.value = tableName;
   pagination.value.page = 1;
+  tableData.value = []; // 清空旧数据，避免键冲突
   void loadData();
 }
 
@@ -674,6 +693,9 @@ async function loadData() {
       case 'site_fsms':
         result = await siteFsmApi.list(page, rowsPerPage);
         break;
+      case 'site_actions':
+        result = await siteActionApi.list(page, rowsPerPage);
+        break;
       default:
         return;
     }
@@ -694,17 +716,18 @@ async function loadData() {
 // Load all counts
 async function loadCounts() {
   try {
-    const [cats, sites, actions, events, catFsms, siteFsms] = await Promise.all([
+    const [cats, sites, actions, events, catFsms, siteFsms, siteActions] = await Promise.all([
       catApi.list(1, 1),
       siteApi.list(1, 1),
       catActionApi.list(1, 1),
       catEventApi.list(1, 1),
       catFsmApi.list(1, 1),
       siteFsmApi.list(1, 1),
+      siteActionApi.list(1, 1),
     ]);
 
     tables.value.forEach((t, i) => {
-      const totals = [cats.total, sites.total, actions.total, events.total, catFsms.total, siteFsms.total];
+      const totals = [cats.total, sites.total, actions.total, events.total, catFsms.total, siteFsms.total, siteActions.total];
       t.count = totals[i] ?? 0;
     });
   } catch (e) {
@@ -897,6 +920,13 @@ async function onSave() {
           await siteFsmApi.create(data as Omit<SiteFSM, 'id'>);
         }
         break;
+      case 'site_actions':
+        if (isEdit) {
+          await siteActionApi.update(id!, data);
+        } else {
+          await siteActionApi.create(data as Omit<SiteAction, 'action_id' | 'created_at' | 'updated_at'>);
+        }
+        break;
     }
 
     editDialog.value.show = false;
@@ -934,6 +964,9 @@ async function onDelete(row: TableRow) {
         break;
       case 'site_fsms':
         await siteFsmApi.delete(id);
+        break;
+      case 'site_actions':
+        await siteActionApi.delete(id);
         break;
     }
 
@@ -1045,6 +1078,9 @@ async function onPopupSave(row: TableRow, field: string, newValue: unknown) {
         break;
       case 'site_fsms':
         await siteFsmApi.update(id, data);
+        break;
+      case 'site_actions':
+        await siteActionApi.update(id, data);
         break;
       default:
         return;

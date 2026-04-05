@@ -221,3 +221,31 @@ export const siteFsmApi = {
       body: JSON.stringify({ last_clean_litter_time }),
     }),
 };
+
+// ============ Site Action API ============
+export type SiteActionType = '消毒' | '喂食' | '喂水' | '逗猫' | '清理猫砂';
+
+export interface SiteAction {
+  action_id: number;
+  site_id: number;
+  user_id: number;
+  action_type: SiteActionType;
+  action_detail: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const SITE_ACTION_TYPES: SiteActionType[] = ['消毒', '喂食', '喂水', '逗猫', '清理猫砂'];
+
+export const siteActionApi = {
+  list: (page = 1, pageSize = 10) =>
+    request<PaginatedResponse<SiteAction>>(`/site-actions/page?page=${page}&page_size=${pageSize}`),
+  get: (id: number) => request<SiteAction>(`/site-actions/${id}`),
+  getBySite: (siteId: number) => request<SiteAction[]>(`/site-actions/site/${siteId}`),
+  getByUser: (userId: number) => request<SiteAction[]>(`/site-actions/user/${userId}`),
+  create: (action: Omit<SiteAction, 'action_id' | 'created_at' | 'updated_at'>) =>
+    request<{ action: SiteAction }>('/site-actions', { method: 'POST', body: JSON.stringify(action) }),
+  update: (id: number, action: Partial<SiteAction>) =>
+    request<SiteAction>(`/site-actions/${id}`, { method: 'PUT', body: JSON.stringify(action) }),
+  delete: (id: number) => request<void>(`/site-actions/${id}`, { method: 'DELETE' }),
+};

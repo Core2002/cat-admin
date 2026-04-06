@@ -1,7 +1,7 @@
 # ============================================
 # 阶段 1: 构建阶段 - 使用国内 Node.js 镜像源
 # ============================================
-FROM docker.1ms.run/library/node:24-alpine AS builder
+FROM docker.1ms.run/node:24-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app

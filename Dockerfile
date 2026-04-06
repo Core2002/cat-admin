@@ -12,8 +12,8 @@ RUN npm config set registry https://registry.npmmirror.com
 # 安装 pnpm
 RUN npm install -g pnpm
 
-# 先复制依赖文件和 quasar 配置，利用 Docker 缓存层
-COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* quasar.config.ts ./
+# 先复制依赖文件和必要配置，利用 Docker 缓存层
+COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* quasar.config.ts index.html ./
 
 # 安装依赖（使用国内 pnpm 源）
 RUN pnpm config set registry https://registry.npmmirror.com \

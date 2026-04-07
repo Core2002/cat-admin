@@ -90,7 +90,7 @@ npm run dev
 quasar dev
 ```
 
-开发服务器启动后会自动打开浏览器访问 `http://localhost:9000`。
+开发服务器启动后会自动打开浏览器访问 `http://localhost:5200`。
 
 ### 开发环境代理配置
 

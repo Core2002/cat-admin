@@ -79,21 +79,22 @@ export default defineConfig((/* ctx */) => {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
     devServer: {
+      port: 5200,
       // https: true,
       open: true, // opens browser window automatically
       proxy: {
         // 所有请求都通过网关 (端口 5000)
         // 网关会自动将 /api 转发到数据服务器 (端口 5100)
         '/api': {
-          target: 'http://localhost:5000',
+          target: 'http://10.0.2.221:5200',
           changeOrigin: true,
         },
         '/webauthn': {
-          target: 'http://localhost:5000',
+          target: 'http://10.0.2.221:5200',
           changeOrigin: true,
         },
         '/profile': {
-          target: 'http://localhost:5000',
+          target: 'http://10.0.2.221:5200',
           changeOrigin: true,
         },
       },

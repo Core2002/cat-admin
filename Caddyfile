@@ -1,0 +1,12 @@
+{
+	admin off
+}
+
+:5200 {
+	root * /usr/share/caddy/html
+	file_server
+
+	reverse_proxy /api/* localhost:5000
+	reverse_proxy /webauthn/* localhost:5000
+	reverse_proxy /profile/* localhost:5000
+}

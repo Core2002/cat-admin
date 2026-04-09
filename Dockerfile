@@ -24,18 +24,14 @@ COPY . .
 RUN pnpm build
 
 # ============================================
-# 阶段 2: 运行阶段 - 使用国内 Nginx 镜像
+# 阶段 2: 运行阶段 - 使用 Caddy 镜像
 # ============================================
-FROM docker.1ms.run/nginx:alpine
+FROM docker.1ms.run/caddy:alpine
 
-# 移除默认的 Nginx 配置和欢迎页（减小镜像体积）
-RUN rm /etc/nginx/conf.d/default.conf \
-    && rm -rf /usr/share/nginx/html/*
-
-# 复制构建产物和 Nginx 配置
-COPY --from=builder /app/dist/spa /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# 复制构建产物和 Caddy 配置
+COPY --from=builder /app/dist/spa /usr/share/caddy/html
+COPY Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 5200
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

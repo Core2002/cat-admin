@@ -1,7 +1,5 @@
 :5200 {
-	tls internal {
-		on_demand
-	}
+	tls internal
 	root * /usr/share/caddy/html
 	file_server
 

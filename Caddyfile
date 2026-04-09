@@ -3,6 +3,7 @@
 }
 
 :5200 {
+	tls internal
 	root * /usr/share/caddy/html
 	file_server
 

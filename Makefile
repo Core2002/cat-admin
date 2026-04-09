@@ -11,6 +11,6 @@ clean:
 	podman rmi -f $(IMAGE_NAME) || true
 
 run-container:
-	podman run -d --network=host --name $(CONTAINER_NAME) --replace $(IMAGE_NAME)
+	podman run -d --network=host --name $(CONTAINER_NAME) --replace $(IMAGE_NAME) --cap-add=CAP_NET_BIND_SERVICE
 
 .PHONY: build-image clean run-container

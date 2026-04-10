@@ -86,15 +86,15 @@ export default defineConfig((/* ctx */) => {
         // 所有请求都通过网关 (端口 5000)
         // 网关会自动将 /api 转发到数据服务器 (端口 5100)
         '/api': {
-          target: 'http://10.0.2.221:5200',
+          target: 'http://0:5000',
           changeOrigin: true,
         },
         '/webauthn': {
-          target: 'http://10.0.2.221:5200',
+          target: 'http://0:5000',
           changeOrigin: true,
         },
         '/profile': {
-          target: 'http://10.0.2.221:5200',
+          target: 'http://0:5000',
           changeOrigin: true,
         },
       },

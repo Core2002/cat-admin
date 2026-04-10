@@ -13,72 +13,59 @@
         操作台
       </div>
 
-      <!-- 选择区域 -->
-      <div class="row q-col-gutter-md q-mb-lg">
-        <!-- 选择设施 -->
-        <div class="col-12 col-md-6">
-          <q-card>
-            <q-card-section>
-              <div class="text-h6">
-                <q-icon name="domain" class="q-mr-sm" />
-                选择工作地点
-              </div>
-            </q-card-section>
-            <q-card-section class="q-pt-none">
-              <q-select
-                v-model="selectedSite"
-                :options="siteOptions"
-                label="请选择设施"
-                outlined
-                map-options
-                emit-value
-                @update:model-value="onSiteChange"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="store" />
-                </template>
-                <template v-slot:no-option>
-                  <q-item>
-                    <q-item-section class="text-grey">暂无设施数据</q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- 选择猫咪 -->
-        <div class="col-12 col-md-6">
-          <q-card>
-            <q-card-section>
-              <div class="text-h6">
-                <q-icon name="pets" class="q-mr-sm" />
-                选择猫咪
-              </div>
-            </q-card-section>
-            <q-card-section class="q-pt-none">
-              <q-select
-                v-model="selectedCat"
-                :options="catOptions"
-                label="请选择猫咪"
-                outlined
-                map-options
-                emit-value
-                :disable="!selectedSite"
-              >
-                <template v-slot:prepend>
-                  <q-icon name="pets" />
-                </template>
-                <template v-slot:no-option>
-                  <q-item>
-                    <q-item-section class="text-grey">请先选择设施</q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
+      <!-- 选择区域：树形选择器 -->
+      <q-card class="q-mb-lg">
+        <q-card-section>
+          <q-item-label header class="q-pa-none">
+            <q-icon name="account_tree" class="q-mr-sm" />
+            选择工作地点和猫咪
+          </q-item-label>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-tree
+            :nodes="treeNodes"
+            node-key="id"
+            label-key="label"
+            :selected="treeSelected"
+            :expanded="treeExpanded"
+            @update:selected="onTreeSelect"
+            @update:expanded="onTreeExpand"
+            selected-color="primary"
+            class="q-mt-sm"
+          >
+            <template v-slot:default-header="prop">
+              <q-item class="full-width q-pa-xs" dense>
+                <q-item-section avatar class="q-pr-sm">
+                  <q-avatar
+                    :color="prop.node.type === 'site' ? 'primary' : 'secondary'"
+                    text-color="white"
+                    size="32px"
+                  >
+                    <q-icon :name="prop.node.type === 'site' ? 'domain' : 'pets'" size="18px" />
+                  </q-avatar>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label class="text-weight-medium">{{ prop.node.label }}</q-item-label>
+                  <q-item-label caption v-if="prop.node.type === 'cat' && prop.node.catInfo">
+                    {{ prop.node.catInfo.cat_type }} · {{ prop.node.catInfo.cat_gender }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side v-if="prop.node.type === 'cat' && prop.node.catInfo?.cat_gender">
+                  <q-badge
+                    :color="prop.node.catInfo.cat_gender === '公' ? 'blue' : 'pink'"
+                    :label="prop.node.catInfo.cat_gender"
+                  />
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-tree>
+          <q-item v-if="treeNodes.length === 0" class="text-grey">
+            <q-item-section class="text-center">
+              <q-item-label caption>暂无设施数据</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-card-section>
+      </q-card>
 
       <!-- 设施信息面板 -->
       <q-card v-if="selectedSite" class="q-mb-lg">
@@ -825,19 +812,85 @@ const siteFsm = ref<SiteFSM | null>(null);
 const recentSiteActions = ref<SiteAction[]>([]);
 const siteInfoLoading = ref(false);
 
-// 设施选项
-const siteOptions = computed(() =>
-  sites.value.map((s) => ({ label: s.site_name, value: s.site_id }))
-);
+// 所有猫咪 FSM 数据（用于确定猫咪归属设施）
+const allCatFsms = ref<CatFSM[]>([]);
 
-// 猫咪选项
-const catOptions = computed(() => {
-  if (!selectedSite.value) return [];
-  // 显示所有猫咪（可根据需要添加设施筛选逻辑）
-  return cats.value.map((c) => ({
-    label: c.cat_name,
-    value: c.cat_id,
-  }));
+// 树形选择器数据
+interface TreeNode {
+  id: string;
+  label: string;
+  type: 'site' | 'cat';
+  siteId?: number;
+  catId?: number;
+  catInfo?: Cat;
+  children?: TreeNode[];
+  icon?: string;
+}
+
+const treeSelected = ref<string | null>(null);
+const treeExpanded = ref<string[]>([]);
+
+// 构建 cat_id -> site_id 的映射（只记录有效的 site_id）
+const catSiteMap = computed(() => {
+  const map = new Map<number, number>();
+  allCatFsms.value.forEach((fsm) => {
+    // 只有 site_id 大于 0 才认为是有效分配
+    if (fsm.site_id && fsm.site_id > 0) {
+      map.set(fsm.cat_id, fsm.site_id);
+    }
+  });
+  return map;
+});
+
+// 构建树形节点
+const treeNodes = computed<TreeNode[]>(() => {
+  const nodes: TreeNode[] = [];
+  const siteIds = new Set(sites.value.map((s) => s.site_id));
+
+  // 为每个设施创建节点
+  sites.value.forEach((site) => {
+    const catsInSite = cats.value.filter((cat) => catSiteMap.value.get(cat.cat_id) === site.site_id);
+
+    nodes.push({
+      id: `site-${site.site_id}`,
+      label: site.site_name,
+      type: 'site',
+      siteId: site.site_id,
+      children: catsInSite.map((cat) => ({
+        id: `cat-${cat.cat_id}`,
+        label: cat.cat_name,
+        type: 'cat' as const,
+        siteId: site.site_id,
+        catId: cat.cat_id,
+        catInfo: cat,
+      })),
+    });
+  });
+
+  // 找出未分配设施的猫咪（包括：无 FSM 记录、FSM 中 site_id 无效、FSM 中 site_id 对应的设施不存在）
+  const unassignedCats = cats.value.filter((cat) => {
+    const siteId = catSiteMap.value.get(cat.cat_id);
+    return !siteId || !siteIds.has(siteId);
+  });
+
+  if (unassignedCats.length > 0) {
+    nodes.push({
+      id: 'site-unassigned',
+      label: '未分配设施',
+      type: 'site',
+      siteId: -1, // 特殊标记
+      children: unassignedCats.map((cat) => ({
+        id: `cat-${cat.cat_id}`,
+        label: cat.cat_name,
+        type: 'cat' as const,
+        siteId: -1,
+        catId: cat.cat_id,
+        catInfo: cat,
+      })),
+    });
+  }
+
+  return nodes;
 });
 
 // 今日记录
@@ -867,15 +920,87 @@ const eventDialog = ref({
   loading: false,
 });
 
-// 设施变化时清空猫咪选择
-function onSiteChange() {
-  selectedCat.value = null;
-  catDetail.value = null;
-  catFsm.value = null;
-  recentActions.value = [];
-  recentEvents.value = [];
-  // 加载设施信息
-  void loadSiteInfo();
+// 树形选择处理
+function onTreeSelect(nodeId: string | null) {
+  if (!nodeId) {
+    selectedSite.value = null;
+    selectedCat.value = null;
+    catDetail.value = null;
+    catFsm.value = null;
+    recentActions.value = [];
+    recentEvents.value = [];
+    siteDetail.value = null;
+    siteFsm.value = null;
+    recentSiteActions.value = [];
+    return;
+  }
+
+  if (nodeId === 'site-unassigned') {
+    // 选择了"未分配设施"节点
+    selectedSite.value = null;
+    selectedCat.value = null;
+    catDetail.value = null;
+    catFsm.value = null;
+    recentActions.value = [];
+    recentEvents.value = [];
+    siteDetail.value = null;
+    siteFsm.value = null;
+    recentSiteActions.value = [];
+    return;
+  }
+
+  if (nodeId.startsWith('site-')) {
+    // 选择了设施节点
+    const siteId = parseInt(nodeId.replace('site-', ''), 10);
+    selectedSite.value = siteId;
+    selectedCat.value = null;
+    catDetail.value = null;
+    catFsm.value = null;
+    recentActions.value = [];
+    recentEvents.value = [];
+    void loadSiteInfo();
+  } else if (nodeId.startsWith('cat-')) {
+    // 选择了猫咪节点
+    const catId = parseInt(nodeId.replace('cat-', ''), 10);
+    const cat = cats.value.find((c) => c.cat_id === catId);
+    if (cat) {
+      // 从节点获取 siteId
+      const node = findNodeById(nodeId);
+      const nodeSiteId = node?.siteId;
+
+      // 如果是未分配设施的猫咪 (siteId === -1)，不设置设施
+      if (nodeSiteId && nodeSiteId !== -1) {
+        selectedSite.value = nodeSiteId;
+        void loadSiteInfo();
+      } else {
+        selectedSite.value = null;
+        siteDetail.value = null;
+        siteFsm.value = null;
+        recentSiteActions.value = [];
+      }
+
+      selectedCat.value = catId;
+      void loadCatInfo();
+    }
+  }
+}
+
+// 查找节点
+function findNodeById(id: string, nodes?: TreeNode[]): TreeNode | null {
+  const searchNodes = nodes || treeNodes.value;
+  for (const node of searchNodes) {
+    if (node.id === id) return node;
+    if (node.children) {
+      const found = findNodeById(id, node.children);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// 树形展开处理
+function onTreeExpand(expanded: readonly string[]) {
+  treeExpanded.value = [...expanded];
 }
 
 // 加载设施详细信息
@@ -1462,17 +1587,22 @@ function getEventColor(type: string) {
 async function loadData() {
   loading.value = true;
   try {
-    const [sitesRes, catsRes] = await Promise.all([
+    const [sitesRes, catsRes, fsmsRes] = await Promise.all([
       siteApi.list(1, 100),
       catApi.list(1, 100),
+      catFsmApi.list(1, 100), // 获取所有 FSM 数据用于确定猫咪归属
     ]);
 
     sites.value = sitesRes.data || [];
     cats.value = catsRes.data || [];
+    allCatFsms.value = fsmsRes.data || [];
 
     // 默认选择第一个设施并加载设施信息
     if (sites.value.length > 0) {
-      selectedSite.value = sites.value[0]!.site_id;
+      const firstSiteId = sites.value[0]!.site_id;
+      selectedSite.value = firstSiteId;
+      treeSelected.value = `site-${firstSiteId}`;
+      treeExpanded.value = [`site-${firstSiteId}`];
       await loadSiteInfo();
     }
   } catch (error) {

@@ -80,6 +80,281 @@
         </div>
       </div>
 
+      <!-- 设施信息面板 -->
+      <q-card v-if="selectedSite" class="q-mb-lg">
+        <q-inner-loading :showing="siteInfoLoading">
+          <q-spinner-gears size="40px" color="primary" />
+        </q-inner-loading>
+
+        <template v-if="siteDetail">
+          <q-card-section horizontal>
+            <!-- 左侧：基本信息 -->
+            <q-card-section class="q-pa-md" style="min-width: 200px">
+              <q-item class="q-pa-none">
+                <q-item-section avatar>
+                  <q-avatar size="50px" color="primary" text-color="white" icon="domain" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label class="text-h6 text-weight-bold">{{ siteDetail.site_name }}</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-separator class="q-my-md" />
+
+              <q-item-label header class="q-pa-none q-mb-sm">联系方式</q-item-label>
+              <q-item dense class="q-pa-none">
+                <q-item-section avatar class="q-pr-sm">
+                  <q-icon name="place" color="grey" size="20px" />
+                </q-item-section>
+                <q-item-label class="text-body2">{{ siteDetail.site_address || '未记录' }}</q-item-label>
+              </q-item>
+              <q-item dense class="q-pa-none">
+                <q-item-section avatar class="q-pr-sm">
+                  <q-icon name="phone" color="grey" size="20px" />
+                </q-item-section>
+                <q-item-label class="text-body2">{{ siteDetail.site_admin_phone_number || '未记录' }}</q-item-label>
+              </q-item>
+            </q-card-section>
+
+            <q-separator vertical />
+
+            <!-- 右侧：状态和近期记录 -->
+            <q-card-section class="q-pa-md col">
+              <!-- 状态指标 -->
+              <q-item-label header class="q-pa-none q-mb-sm">最近操作时间</q-item-label>
+              <q-card flat bordered class="q-mb-md">
+                <q-card-section class="q-pa-none">
+                  <q-item class="q-pa-sm">
+                    <q-item-section class="text-center">
+                      <q-item-label>
+                        <q-icon name="restaurant" color="primary" size="28px" />
+                      </q-item-label>
+                      <q-item-label class="text-caption">{{ siteFsm?.last_feed_time ? formatDateTime(siteFsm.last_feed_time) : '-' }}</q-item-label>
+                      <q-item-label caption>喂食</q-item-label>
+                    </q-item-section>
+                    <q-separator vertical />
+                    <q-item-section class="text-center">
+                      <q-item-label>
+                        <q-icon name="water_drop" color="info" size="28px" />
+                      </q-item-label>
+                      <q-item-label class="text-caption">{{ siteFsm?.last_give_water_time ? formatDateTime(siteFsm.last_give_water_time) : '-' }}</q-item-label>
+                      <q-item-label caption>喂水</q-item-label>
+                    </q-item-section>
+                    <q-separator vertical />
+                    <q-item-section class="text-center">
+                      <q-item-label>
+                        <q-icon name="cleaning_services" color="positive" size="28px" />
+                      </q-item-label>
+                      <q-item-label class="text-caption">{{ siteFsm?.last_disinfect_time ? formatDateTime(siteFsm.last_disinfect_time) : '-' }}</q-item-label>
+                      <q-item-label caption>消毒</q-item-label>
+                    </q-item-section>
+                    <q-separator vertical />
+                    <q-item-section class="text-center">
+                      <q-item-label>
+                        <q-icon name="sports_esports" color="secondary" size="28px" />
+                      </q-item-label>
+                      <q-item-label class="text-caption">{{ siteFsm?.last_play_time ? formatDateTime(siteFsm.last_play_time) : '-' }}</q-item-label>
+                      <q-item-label caption>逗猫</q-item-label>
+                    </q-item-section>
+                    <q-separator vertical />
+                    <q-item-section class="text-center">
+                      <q-item-label>
+                        <q-icon name="delete_outline" color="accent" size="28px" />
+                      </q-item-label>
+                      <q-item-label class="text-caption">{{ siteFsm?.last_clean_litter_time ? formatDateTime(siteFsm.last_clean_litter_time) : '-' }}</q-item-label>
+                      <q-item-label caption>清理猫砂</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-card-section>
+              </q-card>
+
+              <!-- 近期操作记录 -->
+              <q-item-label header class="q-pa-none q-mb-sm">近期操作</q-item-label>
+              <q-list dense bordered class="rounded-borders" v-if="recentSiteActions.length > 0">
+                <q-item v-for="action in recentSiteActions" :key="action.action_id">
+                  <q-item-section avatar>
+                    <q-avatar :color="getSiteActionColor(action.action_type)" text-color="white" size="28px">
+                      <q-icon :name="getSiteActionIcon(action.action_type)" size="16px" />
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ action.action_type }}</q-item-label>
+                    <q-item-label caption>{{ formatDateTime(action.created_at) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+              <q-item v-else dense class="text-grey bordered">
+                <q-item-section class="text-center">
+                  <q-item-label caption>暂无操作记录</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-card-section>
+          </q-card-section>
+        </template>
+      </q-card>
+
+      <!-- 猫咪信息面板 -->
+      <q-card v-if="selectedCat" class="q-mb-lg">
+        <q-inner-loading :showing="catInfoLoading">
+          <q-spinner-gears size="40px" color="primary" />
+        </q-inner-loading>
+
+        <template v-if="catDetail">
+          <!-- 头部：头像和基本信息 -->
+          <q-card-section horizontal>
+            <q-card-section class="col-12 col-md-4 q-pa-md">
+              <q-item class="q-pa-none">
+                <q-item-section avatar>
+                  <q-avatar size="80px">
+                    <img
+                      v-if="catDetail.cat_photo_uri"
+                      :src="catDetail.cat_photo_uri"
+                      @error="($event.target as HTMLImageElement).style.display='none'"
+                    />
+                    <q-icon v-else name="pets" size="50px" color="grey-5" />
+                  </q-avatar>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label class="text-h5 text-weight-bold">{{ catDetail.cat_name }}</q-item-label>
+                  <q-item-label>
+                    <q-badge :color="catDetail.cat_gender === '公' ? 'blue' : 'pink'" :label="catDetail.cat_gender" class="q-mr-xs" />
+                    <q-badge color="grey" :label="catDetail.cat_type" />
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <q-separator class="q-my-md" />
+
+              <!-- 主人信息 -->
+              <q-item-label header class="q-pa-none q-mb-sm">主人信息</q-item-label>
+              <q-item dense class="q-pa-none">
+                <q-item-section avatar class="q-pr-sm">
+                  <q-icon name="person" color="grey" />
+                </q-item-section>
+                <q-item-label>{{ catDetail.master_name || '未记录' }}</q-item-label>
+              </q-item>
+              <q-item dense class="q-pa-none">
+                <q-item-section avatar class="q-pr-sm">
+                  <q-icon name="phone" color="grey" />
+                </q-item-section>
+                <q-item-label>{{ catDetail.master_phone_number || '未记录' }}</q-item-label>
+              </q-item>
+            </q-card-section>
+
+            <q-separator vertical />
+
+            <!-- 右侧：状态和历史记录 -->
+            <q-card-section class="col-12 col-md-8 q-pa-md">
+              <!-- 状态指标 -->
+              <q-item-label header class="q-pa-none q-mb-sm">当前状态</q-item-label>
+              <q-card flat bordered class="q-mb-md">
+                <q-card-section class="q-pa-none">
+                  <q-item class="q-pa-sm">
+                    <!-- 体温 -->
+                    <q-item-section class="text-center">
+                      <q-item-label>
+                        <q-icon
+                          name="thermostat"
+                          :color="catFsm && isTemperatureNormal(catFsm.temperature_c) ? 'positive' : 'negative'"
+                          size="32px"
+                        />
+                      </q-item-label>
+                      <q-item-label class="text-h6">
+                        {{ catFsm?.temperature_c?.toFixed(1) || '-' }}°C
+                      </q-item-label>
+                      <q-item-label caption>体温</q-item-label>
+                      <q-badge
+                        v-if="catFsm"
+                        :color="isTemperatureNormal(catFsm.temperature_c) ? 'positive' : 'negative'"
+                        :label="isTemperatureNormal(catFsm.temperature_c) ? '正常' : '异常'"
+                        class="q-mt-xs"
+                      />
+                    </q-item-section>
+                    <q-separator vertical />
+                    <!-- 体重 -->
+                    <q-item-section class="text-center">
+                      <q-item-label>
+                        <q-icon name="monitor_weight" color="primary" size="32px" />
+                      </q-item-label>
+                      <q-item-label class="text-h6">{{ catFsm?.weight_kg?.toFixed(1) || '-' }}kg</q-item-label>
+                      <q-item-label caption>体重</q-item-label>
+                    </q-item-section>
+                    <q-separator vertical />
+                    <!-- 上次修甲 -->
+                    <q-item-section class="text-center">
+                      <q-item-label>
+                        <q-icon name="content_cut" color="secondary" size="32px" />
+                      </q-item-label>
+                      <q-item-label class="text-body2">{{ catFsm?.trim_nails_time ? formatDateTime(catFsm.trim_nails_time) : '-' }}</q-item-label>
+                      <q-item-label caption>上次修甲</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-card-section>
+              </q-card>
+
+              <!-- 近期记录 -->
+              <q-item-label header class="q-pa-none q-mb-sm">近期记录</q-item-label>
+              <q-card flat bordered>
+                <q-card-section horizontal>
+                  <!-- 近期操作 -->
+                  <q-card-section class="q-pa-sm col-6">
+                    <q-item-label caption class="q-mb-xs">操作记录</q-item-label>
+                    <q-list dense v-if="recentActions.length > 0">
+                      <q-item v-for="action in recentActions" :key="action.action_id" class="q-pa-xs">
+                        <q-item-section avatar class="q-pr-xs">
+                          <q-avatar :color="getActionColor(action.action_type)" text-color="white" size="24px">
+                            <q-icon :name="getActionIcon(action.action_type)" size="14px" />
+                          </q-avatar>
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ action.action_type }}</q-item-label>
+                          <q-item-label caption>{{ formatDateTime(action.created_at) }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                    <q-item v-else dense class="text-grey">
+                      <q-item-section class="text-center">
+                        <q-item-label caption>暂无操作记录</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-card-section>
+
+                  <q-separator vertical />
+
+                  <!-- 近期事件 -->
+                  <q-card-section class="q-pa-sm col-6">
+                    <q-item-label caption class="q-mb-xs">事件记录</q-item-label>
+                    <q-list dense v-if="recentEvents.length > 0">
+                      <q-item v-for="event in recentEvents" :key="event.event_id" class="q-pa-xs">
+                        <q-item-section avatar class="q-pr-xs">
+                          <q-avatar :color="getEventColor(event.event_type)" text-color="white" size="24px">
+                            <q-icon :name="getEventIcon(event.event_type)" size="14px" />
+                          </q-avatar>
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ event.event_type }}</q-item-label>
+                          <q-item-label caption>{{ event.detail || formatDateTime(event.created_at) }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                    <q-item v-else dense class="text-grey">
+                      <q-item-section class="text-center">
+                        <q-item-label caption>暂无事件记录</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-card-section>
+                </q-card-section>
+              </q-card>
+            </q-card-section>
+          </q-card-section>
+        </template>
+
+        <q-card-section v-else-if="!catInfoLoading" class="text-center text-grey q-py-lg">
+          <q-icon name="pets" size="48px" color="grey-4" />
+          <q-item-label class="q-mt-sm">请选择一只猫咪查看详细信息</q-item-label>
+        </q-card-section>
+      </q-card>
+
       <!-- 快捷操作区域 -->
       <q-card class="q-mb-lg">
         <q-card-section>
@@ -512,9 +787,16 @@ import {
   catActionApi,
   catEventApi,
   siteActionApi,
+  catFsmApi,
+  siteFsmApi,
   type Cat,
   type Site,
   type SiteActionType,
+  type CatFSM,
+  type CatAction,
+  type CatEvent,
+  type SiteFSM,
+  type SiteAction,
 } from 'src/api';
 import { useAuthStore } from 'src/stores/auth';
 
@@ -529,6 +811,19 @@ const sites = ref<Site[]>([]);
 const cats = ref<Cat[]>([]);
 const selectedSite = ref<number | null>(null);
 const selectedCat = ref<number | null>(null);
+
+// 猫咪详细信息
+const catDetail = ref<Cat | null>(null);
+const catFsm = ref<CatFSM | null>(null);
+const recentActions = ref<CatAction[]>([]);
+const recentEvents = ref<CatEvent[]>([]);
+const catInfoLoading = ref(false);
+
+// 设施详细信息
+const siteDetail = ref<Site | null>(null);
+const siteFsm = ref<SiteFSM | null>(null);
+const recentSiteActions = ref<SiteAction[]>([]);
+const siteInfoLoading = ref(false);
 
 // 设施选项
 const siteOptions = computed(() =>
@@ -575,6 +870,110 @@ const eventDialog = ref({
 // 设施变化时清空猫咪选择
 function onSiteChange() {
   selectedCat.value = null;
+  catDetail.value = null;
+  catFsm.value = null;
+  recentActions.value = [];
+  recentEvents.value = [];
+  // 加载设施信息
+  void loadSiteInfo();
+}
+
+// 加载设施详细信息
+async function loadSiteInfo() {
+  if (!selectedSite.value) {
+    siteDetail.value = null;
+    siteFsm.value = null;
+    recentSiteActions.value = [];
+    return;
+  }
+
+  siteInfoLoading.value = true;
+  try {
+    const [site, fsm, actions] = await Promise.all([
+      siteApi.get(selectedSite.value),
+      siteFsmApi.getBySite(selectedSite.value),
+      siteActionApi.getBySite(selectedSite.value),
+    ]);
+
+    siteDetail.value = site;
+    siteFsm.value = fsm || null;
+    // 按时间降序排序后取最近5条
+    recentSiteActions.value = actions
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5);
+  } catch (error) {
+    console.error('加载设施信息失败:', error);
+    $q.notify({
+      type: 'negative',
+      message: '加载设施信息失败',
+      position: 'top',
+    });
+  } finally {
+    siteInfoLoading.value = false;
+  }
+}
+
+// 加载猫咪详细信息
+async function loadCatInfo() {
+  if (!selectedCat.value || !selectedSite.value) {
+    catDetail.value = null;
+    catFsm.value = null;
+    recentActions.value = [];
+    recentEvents.value = [];
+    return;
+  }
+
+  catInfoLoading.value = true;
+  try {
+    // 并行加载基本信息、FSM状态、历史操作和事件
+    const [cat, fsmList, actions, events] = await Promise.all([
+      catApi.get(selectedCat.value),
+      catFsmApi.getBySite(selectedSite.value),
+      catActionApi.getByCat(selectedCat.value),
+      catEventApi.getByCat(selectedCat.value),
+    ]);
+
+    catDetail.value = cat;
+    // 从 FSM 列表中筛选出当前猫咪的记录
+    catFsm.value = fsmList.find((f) => f.cat_id === selectedCat.value) || null;
+    // 按时间降序排序后取最近5条
+    recentActions.value = actions
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5);
+    recentEvents.value = events
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5);
+  } catch (error) {
+    console.error('加载猫咪信息失败:', error);
+    $q.notify({
+      type: 'negative',
+      message: '加载猫咪信息失败',
+      position: 'top',
+    });
+  } finally {
+    catInfoLoading.value = false;
+  }
+}
+
+// 判断体温是否正常
+function isTemperatureNormal(temp: number): boolean {
+  return temp >= 37.5 && temp <= 39.5;
+}
+
+// 格式化日期时间
+function formatDateTime(timeStr: string): string {
+  if (!timeStr) return '-';
+  let dateStr = timeStr;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    dateStr = dateStr + 'Z';
+  }
+  const date = new Date(dateStr);
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 // 快捷操作
@@ -1071,9 +1470,10 @@ async function loadData() {
     sites.value = sitesRes.data || [];
     cats.value = catsRes.data || [];
 
-    // 默认选择第一个设施
+    // 默认选择第一个设施并加载设施信息
     if (sites.value.length > 0) {
       selectedSite.value = sites.value[0]!.site_id;
+      await loadSiteInfo();
     }
   } catch (error) {
     console.error('加载数据失败:', error);
@@ -1087,9 +1487,10 @@ async function loadData() {
   }
 }
 
-// 监听设施和猫咪选择变化，自动刷新今日记录
+// 监听设施和猫咪选择变化，自动刷新今日记录和猫咪详情
 watch([selectedSite, selectedCat], () => {
   void loadTodayRecords();
+  void loadCatInfo();
 });
 
 onMounted(() => {

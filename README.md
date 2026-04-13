@@ -200,4 +200,6 @@ quasar build
 
 ## 许可证
 
-本项目为私有项目，版权所有 © Neko Probe
+MIT License
+
+Copyright (c) 2026 Core2002

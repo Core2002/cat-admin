@@ -1,4 +1,4 @@
-fifu.local:5200 {
+cat.fifu.fun:5200 {
 	tls internal {
 		on_demand
 	}

@@ -1,22 +1,25 @@
 # ============================================
-# 阶段 1: 构建阶段 - 使用国内 Node.js 镜像源
+# Global args
 # ============================================
-FROM docker.1ms.run/node:24-alpine AS builder
+ARG NODE_IMAGE=node:24-alpine
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ARG CADDY_IMAGE=caddy:alpine
 
-# 设置工作目录
+# ============================================
+# Stage 1: Build
+# ============================================
+FROM ${NODE_IMAGE} AS builder
+
 WORKDIR /app
 
-# 使用阿里云 npm 镜像源
-RUN npm config set registry https://registry.npmmirror.com
+# 安装 pnpm 并配置 registry（利用缓存）
+RUN npm config set registry ${NPM_REGISTRY} && npm install -g pnpm
 
-# 安装 pnpm
-RUN npm install -g pnpm
-
-# 先复制依赖文件和必要配置，利用 Docker 缓存层
+# 复制依赖文件（利用 Docker 缓存层）
 COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* quasar.config.ts index.html ./
 
-# 安装依赖（使用国内 pnpm 源）
-RUN pnpm config set registry https://registry.npmmirror.com \
+# 安装依赖
+RUN pnpm config set registry ${NPM_REGISTRY} \
     && pnpm install --frozen-lockfile || pnpm install
 
 # 复制源码并构建
@@ -24,11 +27,10 @@ COPY . .
 RUN pnpm build
 
 # ============================================
-# 阶段 2: 运行阶段 - 使用 Caddy 镜像
+# Stage 2: Runtime
 # ============================================
-FROM docker.1ms.run/caddy:alpine
+FROM ${CADDY_IMAGE}
 
-# 复制构建产物和 Caddy 配置
 COPY --from=builder /app/dist/spa /usr/share/caddy/html
 COPY Caddyfile /etc/caddy/Caddyfile
 

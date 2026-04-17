@@ -119,6 +119,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/stores/auth';
+import { isWebAuthnSupported } from 'src/api/auth';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -127,15 +128,13 @@ const authStore = useAuthStore();
 const username = ref('');
 const loading = ref(false);
 const error = ref('');
-const webAuthnSupported = ref(true);
+const webAuthnSupported = ref(false);
 
 const registerDialog = ref(false);
 const registerUsername = ref('');
 
 onMounted(() => {
-  // 检查浏览器是否支持 WebAuthn
-  webAuthnSupported.value =
-    typeof window !== 'undefined' && !!window.PublicKeyCredential;
+  webAuthnSupported.value = isWebAuthnSupported();
 });
 
 async function onSubmit() {

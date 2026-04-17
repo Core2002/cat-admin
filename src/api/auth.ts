@@ -1,4 +1,14 @@
-// WebAuthn 认证 API - 对接 fifu-gateway
+// WebAuthn 认证 API - 对接 fifu-gateway（使用 SimpleWebAuthn）
+
+import {
+  startRegistration,
+  startAuthentication,
+  browserSupportsWebAuthn,
+  type RegistrationResponseJSON,
+  type AuthenticationResponseJSON,
+  type PublicKeyCredentialCreationOptionsJSON,
+  type PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/browser';
 
 const AUTH_BASE = ''; // fifu-gateway 直接在根路径
 
@@ -39,26 +49,6 @@ export interface User {
   role: string;
 }
 
-export interface LoginStartResponse {
-  challenge: string;
-  rpId: string;
-  timeout: number;
-  userVerification: string;
-  allowCredentials: Array<{
-    id: string;
-    type: string;
-  }>;
-}
-
-export interface RegisterStartResponse {
-  rp: { name: string; id: string };
-  user: { id: string; name: string; displayName: string };
-  challenge: string;
-  pubKeyCredParams: Array<{ type: string; alg: number }>;
-  timeout: number;
-  attestation: string;
-}
-
 export interface LoginFinishResponse {
   status: string;
   data: {
@@ -75,95 +65,55 @@ export interface ProfileResponse {
   expired_at: string;
 }
 
-// ============ WebAuthn Helpers ============
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-}
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const padded = base64.replace(/-/g, '+').replace(/_/g, '/');
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
 // ============ Auth API ============
 
 export const authApi = {
-  // 开始注册流程
-  registerStart: async (username: string): Promise<RegisterStartResponse> => {
-    return request<RegisterStartResponse>('/webauthn/register/start', {
-      method: 'POST',
-      body: JSON.stringify({ username }),
-    });
+  // 开始注册流程 - 返回 SimpleWebAuthn 兼容的 creation options
+  registerStart: async (
+    username: string
+  ): Promise<PublicKeyCredentialCreationOptionsJSON> => {
+    return request<PublicKeyCredentialCreationOptionsJSON>(
+      '/webauthn/register/start',
+      {
+        method: 'POST',
+        body: JSON.stringify({ username }),
+      }
+    );
   },
 
-  // 完成注册流程
+  // 完成注册流程 - 发送完整 RegistrationResponseJSON
   registerFinish: async (
     username: string,
-    credential: PublicKeyCredential
+    credential: RegistrationResponseJSON
   ): Promise<{ status: string }> => {
-    const response = credential.response as AuthenticatorAttestationResponse;
-
-    const body = {
-      username,
-      id: credential.id,
-      rawId: arrayBufferToBase64(credential.rawId),
-      response: {
-        clientDataJSON: arrayBufferToBase64(response.clientDataJSON),
-        attestationObject: arrayBufferToBase64(response.attestationObject),
-      },
-      type: credential.type,
-    };
-
     return request<{ status: string }>('/webauthn/register/finish', {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify({ username, ...credential }),
     });
   },
 
-  // 开始登录流程
-  loginStart: async (username: string): Promise<LoginStartResponse> => {
-    return request<LoginStartResponse>('/webauthn/login/start', {
-      method: 'POST',
-      body: JSON.stringify({ username }),
-    });
+  // 开始登录流程 - 返回 SimpleWebAuthn 兼容的 request options
+  loginStart: async (
+    username: string
+  ): Promise<PublicKeyCredentialRequestOptionsJSON> => {
+    return request<PublicKeyCredentialRequestOptionsJSON>(
+      '/webauthn/login/start',
+      {
+        method: 'POST',
+        body: JSON.stringify({ username }),
+      }
+    );
   },
 
-  // 完成登录流程
+  // 完成登录流程 - 发送完整 AuthenticationResponseJSON（含 challenge）
   loginFinish: async (
     username: string,
-    assertion: PublicKeyCredential,
+    assertion: AuthenticationResponseJSON,
     challenge: string
   ): Promise<LoginFinishResponse> => {
-    const response = assertion.response as AuthenticatorAssertionResponse;
-
-    const body = {
-      username,
-      id: assertion.id,
-      rawId: arrayBufferToBase64(assertion.rawId),
-      response: {
-        clientDataJSON: arrayBufferToBase64(response.clientDataJSON),
-        authenticatorData: arrayBufferToBase64(response.authenticatorData),
-        signature: arrayBufferToBase64(response.signature),
-        userHandle: response.userHandle
-          ? arrayBufferToBase64(response.userHandle)
-          : null,
-      },
-      type: assertion.type,
-      challenge,
-    };
-
     return request<LoginFinishResponse>('/webauthn/login/finish', {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify({ username, challenge, ...assertion }),
     });
   },
 
@@ -175,35 +125,19 @@ export const authApi = {
 
 // ============ WebAuthn 认证流程封装 ============
 
+export function isWebAuthnSupported(): boolean {
+  return browserSupportsWebAuthn();
+}
+
 export async function webAuthnRegister(username: string): Promise<boolean> {
   try {
-    // 1. 开始注册
-    const options = await authApi.registerStart(username);
+    // 1. 从服务端获取注册选项
+    const optionsJSON = await authApi.registerStart(username);
 
-    // 2. 创建凭证
-    const credential = (await navigator.credentials.create({
-      publicKey: {
-        rp: options.rp,
-        user: {
-          id: base64ToArrayBuffer(options.user.id),
-          name: options.user.name,
-          displayName: options.user.displayName,
-        },
-        challenge: base64ToArrayBuffer(options.challenge),
-        pubKeyCredParams: options.pubKeyCredParams.map((p) => ({
-          type: p.type as 'public-key',
-          alg: p.alg,
-        })),
-        timeout: options.timeout,
-        attestation: options.attestation as AttestationConveyancePreference,
-      },
-    })) as PublicKeyCredential;
+    // 2. 使用 SimpleWebAuthn 创建凭证（自动处理 navigator.credentials.create 和 base64url 编码）
+    const credential = await startRegistration({ optionsJSON });
 
-    if (!credential) {
-      throw new Error('Failed to create credential');
-    }
-
-    // 3. 完成注册
+    // 3. 将 SimpleWebAuthn 格式的响应发送到服务端完成注册
     await authApi.registerFinish(username, credential);
     return true;
   } catch (error) {
@@ -216,32 +150,17 @@ export async function webAuthnLogin(
   username: string
 ): Promise<LoginFinishResponse['data']> {
   try {
-    // 1. 开始登录
-    const options = await authApi.loginStart(username);
+    // 1. 从服务端获取认证选项
+    const optionsJSON = await authApi.loginStart(username);
 
-    // 2. 获取断言
-    const assertion = (await navigator.credentials.get({
-      publicKey: {
-        challenge: base64ToArrayBuffer(options.challenge),
-        rpId: options.rpId,
-        allowCredentials: options.allowCredentials.map((cred) => ({
-          id: base64ToArrayBuffer(cred.id),
-          type: cred.type as 'public-key',
-        })),
-        timeout: options.timeout,
-        userVerification: options.userVerification as UserVerificationRequirement,
-      },
-    })) as PublicKeyCredential;
+    // 2. 使用 SimpleWebAuthn 获取断言（自动处理 navigator.credentials.get 和 base64url 编码）
+    const assertion = await startAuthentication({ optionsJSON });
 
-    if (!assertion) {
-      throw new Error('Failed to get assertion');
-    }
-
-    // 3. 完成登录
+    // 3. 将断言和 challenge 发送到服务端完成登录
     const result = await authApi.loginFinish(
       username,
       assertion,
-      options.challenge
+      optionsJSON.challenge
     );
     return result.data;
   } catch (error) {

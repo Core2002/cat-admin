@@ -93,10 +93,6 @@ export default defineConfig((/* ctx */) => {
           target: 'http://0:5000',
           changeOrigin: true,
         },
-        '/profile': {
-          target: 'http://0:5000',
-          changeOrigin: true,
-        },
       },
     },
 

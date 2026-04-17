@@ -102,7 +102,6 @@ quasar dev
 
 - `/api` → `http://localhost:5000/api`
 - `/webauthn` → `http://localhost:5000/webauthn`
-- `/profile` → `http://localhost:5000/profile`
 
 ## 代码规范
 

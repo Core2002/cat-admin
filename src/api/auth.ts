@@ -169,7 +169,7 @@ export const authApi = {
 
   // 获取用户信息
   getProfile: async (token: string): Promise<ProfileResponse> => {
-    return request<ProfileResponse>('/profile', { token });
+    return request<ProfileResponse>('/webauthn/profile', { token });
   },
 };
 

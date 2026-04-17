@@ -1,11 +1,4 @@
-cat.fifu.fun:5200 {
-	tls internal {
-		on_demand
-	}
+http://localhost:5200 {
 	root * /usr/share/caddy/html
 	file_server
-
-	reverse_proxy /api/* localhost:5000
-	reverse_proxy /webauthn/* localhost:5000
-	reverse_proxy /profile/* localhost:5000
 }

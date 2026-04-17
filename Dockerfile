@@ -13,18 +13,17 @@ FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 
 # 安装 pnpm 并配置 registry（利用缓存）
-RUN npm config set registry ${NPM_REGISTRY} && npm install -g pnpm
+RUN npm config set registry ${NPM_REGISTRY}
 
 # 复制依赖文件（利用 Docker 缓存层）
 COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* quasar.config.ts index.html ./
 
 # 安装依赖
-RUN pnpm config set registry ${NPM_REGISTRY} \
-    && pnpm install --frozen-lockfile || pnpm install
+RUN npm ci
 
 # 复制源码并构建
 COPY . .
-RUN pnpm build
+RUN npm run build
 
 # ============================================
 # Stage 2: Runtime

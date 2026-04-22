@@ -1,7 +1,7 @@
-http://localhost:5200 {
+tls.internal {
 	root * /usr/share/caddy/html
 	file_server
-
+	tls internal
 	reverse_proxy /api/* localhost:5000
 	reverse_proxy /webauthn/* localhost:5000
 }

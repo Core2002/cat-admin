@@ -25,7 +25,12 @@ clean:
 	podman rm -f $(CONTAINER_NAME) || true
 	podman rmi -f $(IMAGE_NAME) || true
 
+# 获取证书
+# podman cp caddy:/data/caddy/pki/authorities/local/root.crt ./root.crt
+# 修改 hosts 文件：
+# Windows: C:\Windows\System32\drivers\etc\hosts
+# Linux/macOS: /etc/hosts
 run-container:
-	podman run -d --network=host --name $(CONTAINER_NAME) --replace $(IMAGE_NAME)
+	podman run -d --network=host -v caddy_data:/data:z --name $(CONTAINER_NAME) --replace $(IMAGE_NAME)
 
 .PHONY: build-image build-image-cn clean run-container

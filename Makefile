@@ -25,8 +25,13 @@ clean:
 	podman rm -f $(CONTAINER_NAME) || true
 	podman rmi -f $(IMAGE_NAME) || true
 
-# 获取证书
-# podman cp caddy:/data/caddy/pki/authorities/local/root.crt ./root.crt
+# 编辑 /etc/sysctl.conf 修改系统参数，将普通用户可绑定的最小端口号下调：
+# net.ipv4.ip_unprivileged_port_start=80
+# 然后使能：
+# sudo sysctl -p
+#
+# 获取证书：
+# podman cp cat-admin:/data/caddy/pki/authorities/local/root.crt ./root.crt
 # 修改 hosts 文件：
 # Windows: C:\Windows\System32\drivers\etc\hosts
 # Linux/macOS: /etc/hosts

@@ -712,7 +712,7 @@
             :rules="[(val: number) => val >= 35 && val <= 45 || '请输入合理体温(35-45°C)']"
           >
             <template v-slot:hint>
-              正常体温范围: 37.5°C - 39.5°C
+              正常体温范围：37.5°C - 39.5°C
             </template>
           </q-input>
         </q-card-section>
@@ -1022,12 +1022,12 @@ async function loadSiteInfo() {
 
     siteDetail.value = site;
     siteFsm.value = fsm || null;
-    // 按时间降序排序后取最近5条
+    // 按时间降序排序后取最近 5 条
     recentSiteActions.value = actions
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 5);
   } catch (error) {
-    console.error('加载设施信息失败:', error);
+    console.error('加载设施信息失败：', error);
     $q.notify({
       type: 'negative',
       message: '加载设施信息失败',
@@ -1050,7 +1050,7 @@ async function loadCatInfo() {
 
   catInfoLoading.value = true;
   try {
-    // 并行加载基本信息、FSM状态、历史操作和事件
+    // 并行加载基本信息、FSM 状态、历史操作和事件
     const [cat, fsmList, actions, events] = await Promise.all([
       catApi.get(selectedCat.value),
       catFsmApi.getBySite(selectedSite.value),
@@ -1061,7 +1061,7 @@ async function loadCatInfo() {
     catDetail.value = cat;
     // 从 FSM 列表中筛选出当前猫咪的记录
     catFsm.value = fsmList.find((f) => f.cat_id === selectedCat.value) || null;
-    // 按时间降序排序后取最近5条
+    // 按时间降序排序后取最近 5 条
     recentActions.value = actions
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 5);
@@ -1069,7 +1069,7 @@ async function loadCatInfo() {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 5);
   } catch (error) {
-    console.error('加载猫咪信息失败:', error);
+    console.error('加载猫咪信息失败：', error);
     $q.notify({
       type: 'negative',
       message: '加载猫咪信息失败',
@@ -1231,10 +1231,10 @@ function quickAction(action: string) {
 
         await loadTodayRecords();
       } catch (error) {
-        console.error('操作失败:', error);
+        console.error('操作失败：', error);
         $q.notify({
           type: 'negative',
-          message: '记录失败,请重试',
+          message: '记录失败，请重试',
           position: 'top',
         });
       }
@@ -1399,10 +1399,10 @@ async function submitEvent() {
     eventDialog.value.show = false;
     await loadTodayRecords();
   } catch (error) {
-    console.error('记录事件失败:', error);
+    console.error('记录事件失败：', error);
     $q.notify({
       type: 'negative',
-      message: '记录失败,请重试',
+      message: '记录失败，请重试',
       position: 'top',
     });
   } finally {
@@ -1498,7 +1498,7 @@ async function loadTodayRecords() {
       (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
     );
   } catch (error) {
-    console.error('加载今日记录失败:', error);
+    console.error('加载今日记录失败：', error);
   }
 }
 
@@ -1606,7 +1606,7 @@ async function loadData() {
       await loadSiteInfo();
     }
   } catch (error) {
-    console.error('加载数据失败:', error);
+    console.error('加载数据失败：', error);
     $q.notify({
       type: 'negative',
       message: '加载数据失败',

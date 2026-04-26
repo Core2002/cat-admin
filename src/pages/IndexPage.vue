@@ -130,10 +130,10 @@
               <q-separator class="q-my-md" />
               <div class="row justify-around">
                 <q-chip color="blue" text-color="white" size="md">
-                  公: {{ genderData.male }} 只
+                  公：{{ genderData.male }} 只
                 </q-chip>
                 <q-chip color="pink" text-color="white" size="md">
-                  母: {{ genderData.female }} 只
+                  母：{{ genderData.female }} 只
                 </q-chip>
               </div>
             </q-card-section>
@@ -719,28 +719,28 @@ async function loadData() {
     // 并行加载所有数据
     const [catsRes, sitesRes, actionsRes, eventsRes, fsmsRes] = await Promise.all([
       catApi.list(1, 100).catch((e) => {
-        console.error('加载猫咪数据失败:', e);
+        console.error('加载猫咪数据失败：', e);
         return { data: [] as Cat[], total: 0, page: 1, page_size: 0 };
       }),
       siteApi.list(1, 100).catch((e) => {
-        console.error('加载设施数据失败:', e);
+        console.error('加载设施数据失败：', e);
         return { data: [] as { site_id: number; site_name: string }[], total: 0, page: 1, page_size: 0 };
       }),
       catActionApi.list(1, 100).catch((e) => {
-        console.error('加载操作记录失败:', e);
+        console.error('加载操作记录失败：', e);
         return { data: [] as CatAction[], total: 0, page: 1, page_size: 0 };
       }),
       catEventApi.list(1, 100).catch((e) => {
-        console.error('加载事件记录失败:', e);
+        console.error('加载事件记录失败：', e);
         return { data: [] as CatEvent[], total: 0, page: 1, page_size: 0 };
       }),
       catFsmApi.list(1, 100).catch((e) => {
-        console.error('加载猫咪状态失败:', e);
+        console.error('加载猫咪状态失败：', e);
         return { data: [] as CatFSM[], total: 0, page: 1, page_size: 0 };
       }),
     ]);
 
-    console.log('API 响应数据:', { catsRes, sitesRes, actionsRes, eventsRes, fsmsRes });
+    console.log('API 响应数据：', { catsRes, sitesRes, actionsRes, eventsRes, fsmsRes });
 
     cats.value = catsRes.data || [];
     sites.value = sitesRes.data || [];
@@ -758,15 +758,15 @@ async function loadData() {
       (a) => a.created_at && parseDate(a.created_at).toDateString() === today
     ).length;
 
-    // 待处理事件（最近7天的事件）
+    // 待处理事件（最近 7 天的事件）
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     stats.value.pendingEvents = events.value.filter(
       (e) => e.created_at && parseDate(e.created_at).getTime() > weekAgo
     ).length;
 
-    console.log('统计数据:', stats.value);
+    console.log('统计数据：', stats.value);
   } catch (e) {
-    console.error('加载数据失败:', e);
+    console.error('加载数据失败：', e);
     error.value = e instanceof Error ? e.message : '加载数据失败，请重试';
     $q.notify({
       type: 'negative',

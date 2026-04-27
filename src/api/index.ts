@@ -208,3 +208,31 @@ export const siteActionApi = {
   create: (action: SiteActionCreate) =>
     request<{ action: SiteAction }>('/site-actions', { method: 'POST', body: JSON.stringify(action) }),
 };
+
+// ============ Hospitalization API ============
+
+export interface AdmitRequest {
+  cat_id: number;
+  site_id: number;
+  user_id: number;
+  admission_reason: string;
+  admission_note?: string;
+  initial_temperature_c: number;
+  initial_weight_kg: number;
+}
+
+export interface DischargeRequest {
+  cat_id: number;
+  user_id: number;
+  discharge_reason: string;
+  discharge_note?: string;
+  final_temperature_c?: number;
+  final_weight_kg?: number;
+}
+
+export const hospitalizationApi = {
+  admit: (payload: AdmitRequest) =>
+    request<{ message: string; cat_id: number; site_id: number }>('/hospitalizations/admit', { method: 'POST', body: JSON.stringify(payload) }),
+  discharge: (payload: DischargeRequest) =>
+    request<{ message: string; cat_id: number }>('/hospitalizations/discharge', { method: 'POST', body: JSON.stringify(payload) }),
+};

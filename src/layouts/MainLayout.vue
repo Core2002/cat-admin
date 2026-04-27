@@ -64,6 +64,12 @@ const linksList: EssentialLinkProps[] = [
     link: '/data',
   },
   {
+    title: '出入院管理',
+    caption: '办理猫咪入院与出院，后端自动完成状态初始化与结算处理。',
+    icon: 'local_hospital',
+    link: '/hospitalization',
+  },
+  {
     title: 'Docs',
     caption: 'quasar.dev',
     icon: 'school',

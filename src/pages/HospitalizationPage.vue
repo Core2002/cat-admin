@@ -18,16 +18,16 @@
       <q-card-section class="text-subtitle1">从 0 开始登记</q-card-section>
       <q-card-section class="row q-col-gutter-md">
         <div class="col-12 col-md-6">
-          <q-form class="row q-col-gutter-sm" @submit.prevent="createInitialSite">
+          <q-form ref="initSiteFormRef" class="row q-col-gutter-sm" @submit.prevent="createInitialSite">
             <div class="col-12 text-subtitle2">登记设施</div>
             <div class="col-12">
-              <q-input v-model="initSiteForm.site_name" label="设施名称" outlined dense :rules="[(v) => !!v || '请输入设施名称']" />
+              <q-input v-model="initSiteForm.site_name" label="设施名称" outlined dense lazy-rules="ondemand" :rules="[(v) => !!v || '请输入设施名称']" />
             </div>
             <div class="col-12">
-              <q-input v-model="initSiteForm.site_address" label="设施地址" outlined dense :rules="[(v) => !!v || '请输入设施地址']" />
+              <q-input v-model="initSiteForm.site_address" label="设施地址" outlined dense lazy-rules="ondemand" :rules="[(v) => !!v || '请输入设施地址']" />
             </div>
             <div class="col-12">
-              <q-input v-model="initSiteForm.site_admin_phone_number" label="管理员手机号" outlined dense :rules="[(v) => /^1[3-9]\d{9}$/.test(v) || '请输入有效手机号']" />
+              <q-input v-model="initSiteForm.site_admin_phone_number" label="管理员手机号" outlined dense lazy-rules="ondemand" :rules="[(v) => /^1[3-9]\d{9}$/.test(v) || '请输入有效手机号']" />
             </div>
             <div class="col-12">
               <q-btn color="primary" label="创建设施" type="submit" :loading="submittingInitSite" />
@@ -36,25 +36,25 @@
         </div>
 
         <div class="col-12 col-md-6">
-          <q-form class="row q-col-gutter-sm" @submit.prevent="createInitialCat">
+          <q-form ref="initCatFormRef" class="row q-col-gutter-sm" @submit.prevent="createInitialCat">
             <div class="col-12 text-subtitle2">登记猫咪</div>
             <div class="col-12">
-              <q-input v-model="initCatForm.cat_name" label="猫咪名称" outlined dense :rules="[(v) => !!v || '请输入猫咪名称']" />
+              <q-input v-model="initCatForm.cat_name" label="猫咪名称" outlined dense lazy-rules="ondemand" :rules="[(v) => !!v || '请输入猫咪名称']" />
             </div>
             <div class="col-6">
-              <q-input v-model="initCatForm.cat_type" label="品种" outlined dense :rules="[(v) => !!v || '请输入品种']" />
+              <q-input v-model="initCatForm.cat_type" label="品种" outlined dense lazy-rules="ondemand" :rules="[(v) => !!v || '请输入品种']" />
             </div>
             <div class="col-6">
               <q-select v-model="initCatForm.cat_gender" :options="['公', '母']" label="性别" outlined dense />
             </div>
             <div class="col-12">
-              <q-input v-model="initCatForm.master_name" label="主人姓名" outlined dense :rules="[(v) => !!v || '请输入主人姓名']" />
+              <q-input v-model="initCatForm.master_name" label="主人姓名" outlined dense lazy-rules="ondemand" :rules="[(v) => !!v || '请输入主人姓名']" />
             </div>
             <div class="col-12">
-              <q-input v-model="initCatForm.master_phone_number" label="主人手机号" outlined dense :rules="[(v) => /^1[3-9]\d{9}$/.test(v) || '请输入有效手机号']" />
+              <q-input v-model="initCatForm.master_phone_number" label="主人手机号" outlined dense lazy-rules="ondemand" :rules="[(v) => /^1[3-9]\d{9}$/.test(v) || '请输入有效手机号']" />
             </div>
             <div class="col-12">
-              <q-input v-model="initCatForm.cat_photo_uri" label="照片 URL" outlined dense :rules="[(v) => !!v || '请输入照片 URL']" />
+              <q-input v-model="initCatForm.cat_photo_uri" label="照片 URL" outlined dense lazy-rules="ondemand" :rules="[(v) => !!v || '请输入照片 URL']" />
             </div>
             <div class="col-12">
               <q-btn color="secondary" label="创建猫咪" type="submit" :loading="submittingInitCat" />
@@ -74,25 +74,30 @@
         <q-card>
           <q-card-section class="text-subtitle1">入院初始化表单</q-card-section>
           <q-card-section>
-            <q-form class="row q-col-gutter-md" @submit.prevent="submitAdmit">
+            <q-form ref="admitFormRef" class="row q-col-gutter-md" @submit.prevent="submitAdmit">
               <div class="col-12 col-md-6">
                 <q-select v-model="admitForm.cat_id" :options="catOptions" emit-value map-options label="猫咪" outlined dense
+                  lazy-rules="ondemand"
                   :rules="[(v) => !!v || '请选择猫咪']" />
               </div>
               <div class="col-12 col-md-6">
                 <q-select v-model="admitForm.site_id" :options="siteOptions" emit-value map-options label="入院设施" outlined dense
+                  lazy-rules="ondemand"
                   :rules="[(v) => !!v || '请选择设施']" />
               </div>
               <div class="col-12 col-md-6">
                 <q-input v-model.number="admitForm.initial_temperature_c" type="number" label="初始体温(°C)" outlined dense
+                  lazy-rules="ondemand"
                   :rules="[(v) => (v >= 0 && v <= 50) || '体温范围 0~50']" />
               </div>
               <div class="col-12 col-md-6">
                 <q-input v-model.number="admitForm.initial_weight_kg" type="number" label="初始体重(kg)" outlined dense
+                  lazy-rules="ondemand"
                   :rules="[(v) => (v >= 0.1 && v <= 25) || '体重范围 0.1~25']" />
               </div>
               <div class="col-12">
                 <q-input v-model="admitForm.admission_reason" label="入院原因" outlined dense
+                  lazy-rules="ondemand"
                   :rules="[(v) => !!v || '请输入入院原因']" />
               </div>
               <div class="col-12">
@@ -171,10 +176,14 @@ import { computed, onMounted, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { catApi, catFsmApi, hospitalizationApi, siteApi, type Cat, type CatCreate, type CatFSM, type Site, type SiteCreate } from 'src/api';
 import { useAuthStore } from 'src/stores/auth';
+import type { QForm } from 'quasar';
 
 const $q = useQuasar();
 const authStore = useAuthStore();
 const tab = ref<'admit' | 'discharge'>('admit');
+const initSiteFormRef = ref<QForm | null>(null);
+const initCatFormRef = ref<QForm | null>(null);
+const admitFormRef = ref<QForm | null>(null);
 
 const cats = ref<Cat[]>([]);
 const sites = ref<Site[]>([]);
@@ -216,7 +225,12 @@ const initCatForm = ref<CatCreate>({
   master_phone_number: '',
 });
 
-const catOptions = computed(() => cats.value.map((c) => ({ label: `${c.cat_name} (#${c.cat_id})`, value: c.cat_id })));
+const admittedCatIds = computed(() => new Set(activeRecords.value.map((r) => r.cat_id)));
+const catOptions = computed(() =>
+  cats.value
+    .filter((c) => !admittedCatIds.value.has(c.cat_id))
+    .map((c) => ({ label: `${c.cat_name} (#${c.cat_id})`, value: c.cat_id }))
+);
 const siteOptions = computed(() => sites.value.map((s) => ({ label: `${s.site_name} (#${s.site_id})`, value: s.site_id })));
 const activeRecordOptions = computed(() =>
   activeRecords.value.map((r) => ({
@@ -249,6 +263,7 @@ async function createInitialSite() {
       site_address: '',
       site_admin_phone_number: '',
     };
+    initSiteFormRef.value?.resetValidation();
     await loadBaseData();
   } catch (error) {
     $q.notify({ type: 'negative', message: error instanceof Error ? error.message : '设施登记失败' });
@@ -270,6 +285,7 @@ async function createInitialCat() {
       master_name: '',
       master_phone_number: '',
     };
+    initCatFormRef.value?.resetValidation();
     await loadBaseData();
   } catch (error) {
     $q.notify({ type: 'negative', message: error instanceof Error ? error.message : '猫咪登记失败' });
@@ -299,6 +315,7 @@ async function submitAdmit() {
     $q.notify({ type: 'positive', message: '入院办理成功，已完成初始化' });
     admitForm.value.admission_reason = '';
     admitForm.value.admission_note = '';
+    admitFormRef.value?.resetValidation();
     await loadActiveRecords();
   } catch (error) {
     $q.notify({ type: 'negative', message: error instanceof Error ? error.message : '入院失败' });

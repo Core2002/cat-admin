@@ -1,81 +1,106 @@
 <template>
-  <q-page class="row no-wrap q-pa-md">
-    <!-- 左侧数据表列表 -->
-    <transition name="slide">
-      <q-card
-        v-show="sidebarOpen"
-        flat
-        bordered
-        class="sidebar-card"
-      >
-        <q-toolbar class="bg-grey-1">
-          <q-toolbar-title class="text-subtitle2 text-grey">数据表</q-toolbar-title>
-        </q-toolbar>
-        <q-separator />
-        <q-scroll-area style="height: calc(100vh - 250px)">
-          <q-list dense padding>
-            <q-item
-              v-for="table in tables"
-              :key="table.name"
-              clickable
-              :active="selectedTable === table.name"
-              @click="onSelectTable(table.name)"
-              :class="{ 'text-primary': selectedTable === table.name }"
-            >
-              <q-item-section avatar>
-                <q-icon :name="table.icon" size="sm" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label>{{ table.label }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-badge :label="table.count" color="grey-4" text-color="grey-8" />
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-scroll-area>
-      </q-card>
-    </transition>
+  <q-page class="app-page data-page">
+    <q-card flat bordered class="q-mb-md">
+      <q-card-section class="row items-center q-col-gutter-md">
+        <div class="col-12 col-md">
+          <div class="text-h5 text-weight-bold">数据库管理系统</div>
+          <div class="text-caption text-grey-7">面向运营的数据工作台：可浏览、筛选、维护核心业务数据</div>
+        </div>
+        <div class="col-12 col-md-auto row q-gutter-sm">
+          <q-btn flat icon="refresh" label="刷新全部计数" @click="loadCounts" />
+          <q-btn color="primary" unelevated icon="sync" label="刷新当前表" @click="loadData" />
+        </div>
+      </q-card-section>
+    </q-card>
 
-    <!-- 右侧内容区 -->
-    <q-card flat class="col content-card">
-      <!-- Header -->
-      <q-toolbar>
-        <q-btn
-          flat
-          round
+    <q-card flat bordered class="q-mb-md">
+      <q-card-section class="q-pb-none">
+        <q-tabs
+          :model-value="selectedTable || ''"
+          @update:model-value="onSelectTable(($event ?? '') as string)"
           dense
-          :icon="sidebarOpen ? 'chevron_left' : 'chevron_right'"
-          @click="toggleSidebar"
+          inline-label
+          outside-arrows
+          mobile-arrows
+          active-color="primary"
+          indicator-color="primary"
+          class="table-tabs"
         >
-          <q-tooltip>{{ sidebarOpen ? '收起' : '展开' }}数据表</q-tooltip>
-        </q-btn>
-        <q-toolbar-title>
-          <q-item-label class="text-h6">{{ currentTable?.label || '请选择数据表' }}</q-item-label>
+          <q-tab
+            v-for="table in tables"
+            :key="table.name"
+            :name="table.name"
+            :icon="table.icon"
+            :label="`${table.label} (${table.count})`"
+          />
+        </q-tabs>
+      </q-card-section>
+      <q-card-section class="q-pt-sm">
+        <div class="row q-col-gutter-sm">
+          <div class="col-12 col-sm-6 col-md-3" v-for="table in tables" :key="`chip-${table.name}`">
+            <q-card
+              flat
+              bordered
+              class="table-stat-chip cursor-pointer"
+              :class="{ 'table-stat-chip--active': selectedTable === table.name }"
+              @click="onSelectTable(table.name)"
+            >
+              <q-card-section class="row items-center q-pa-sm">
+                <q-icon :name="table.icon" size="18px" class="q-mr-sm" :color="selectedTable === table.name ? 'primary' : 'grey-7'" />
+                <div class="col">
+                  <div class="text-body2 text-weight-medium">{{ table.label }}</div>
+                  <div class="text-caption text-grey-7">{{ table.count }} 条</div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <q-card flat bordered class="content-card">
+      <q-toolbar class="q-px-md q-pt-sm">
+        <q-toolbar-title class="text-subtitle1 text-weight-medium">
+          {{ currentTable?.label || '请选择数据表' }}
         </q-toolbar-title>
-        <q-btn-group v-if="currentTable" flat>
-          <q-btn flat icon="refresh" label="刷新" @click="loadData" />
-          <q-btn v-if="!currentTable.readonly" color="primary" icon="add" label="新增" @click="onAdd" />
-        </q-btn-group>
+        <q-space />
+        <q-input
+          v-model="tableFilter"
+          dense
+          outlined
+          clearable
+          placeholder="搜索当前表"
+          style="width: min(320px, 58vw)"
+          class="q-mr-sm"
+        >
+          <template v-slot:prepend><q-icon name="search" /></template>
+        </q-input>
+        <q-btn
+          v-if="currentTable && !currentTable.readonly"
+          color="primary"
+          icon="add"
+          :label="$q.screen.lt.sm ? '' : '新增'"
+          @click="onAdd"
+        />
       </q-toolbar>
 
       <q-separator />
 
-      <!-- Table -->
-      <q-scroll-area style="height: calc(100vh - 250px)">
-        <q-table
-          v-if="currentTable"
-          flat
-          bordered
-          :rows="tableData"
-          :columns="currentColumns"
-          :row-key="currentTable?.primaryKey"
-          :loading="loading"
-          v-model:pagination="pagination"
-          :rows-per-page-options="[10, 20, 50, 100]"
-          @request="onRequest"
-          class="q-ma-md"
-        >
+      <q-table
+        v-if="currentTable"
+        flat
+        :rows="tableData"
+        :columns="currentColumns"
+        :row-key="currentTable?.primaryKey"
+        :loading="loading"
+        :filter="tableFilter"
+        v-model:pagination="pagination"
+        :rows-per-page-options="[10, 20, 50, 100]"
+        @request="onRequest"
+        class="q-ma-sm"
+        :dense="$q.screen.lt.md"
+        :grid="$q.screen.lt.sm"
+      >
           <!-- Dynamic cell templates -->
           <template #body-cell="props">
             <q-td :props="props">
@@ -207,16 +232,15 @@
               </q-btn>
             </q-td>
           </template>
-        </q-table>
+      </q-table>
 
-        <!-- Empty state -->
-        <q-card v-else flat bordered class="q-ma-md q-py-xl">
-          <q-card-section class="column items-center justify-center">
-            <q-icon name="table_chart" size="80px" color="grey-4" />
-            <q-item-label class="text-grey q-mt-md">请从左侧选择要管理的数据表</q-item-label>
-          </q-card-section>
-        </q-card>
-      </q-scroll-area>
+      <!-- Empty state -->
+      <q-card v-else flat bordered class="q-ma-md q-py-xl">
+        <q-card-section class="column items-center justify-center">
+          <q-icon name="table_chart" size="80px" color="grey-4" />
+          <q-item-label class="text-grey q-mt-md">请选择要管理的数据表</q-item-label>
+        </q-card-section>
+      </q-card>
     </q-card>
 
     <!-- Edit Dialog -->
@@ -406,6 +430,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
 import {
   catApi,
   siteApi,
@@ -482,8 +507,9 @@ interface TableDef {
   canCreate?: boolean; // 只能创建，不能编辑/删除
 }
 
-const sidebarOpen = ref(true);
+const $q = useQuasar();
 const selectedTable = ref<string | null>(null);
+const tableFilter = ref('');
 const tableData = ref<TableRow[]>([]);
 const loading = ref(false);
 const pagination = ref({
@@ -672,11 +698,6 @@ function onSelectTable(tableName: string) {
   pagination.value.page = 1;
   tableData.value = []; // 清空旧数据，避免键冲突
   void loadData();
-}
-
-// Toggle sidebar
-function toggleSidebar() {
-  sidebarOpen.value = !sidebarOpen.value;
 }
 
 // Load data
@@ -1115,25 +1136,34 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.sidebar-card {
-  min-width: 240px;
-  max-width: 240px;
-  margin-right: 8px;
-}
-
 .content-card {
   min-width: 0;
 }
 
-.slide-enter-active,
-.slide-leave-active {
-  transition: all 0.3s ease;
+.table-tabs :deep(.q-tab) {
+  min-height: 42px;
 }
 
-.slide-enter-from,
-.slide-leave-to {
-  transform: translateX(-100%);
-  opacity: 0;
+.table-stat-chip {
+  transition: all 0.2s ease;
+}
+
+.table-stat-chip:hover {
+  border-color: var(--q-primary);
+  transform: translateY(-1px);
+}
+
+.table-stat-chip--active {
+  border-color: var(--q-primary);
+  background: rgba(25, 118, 210, 0.06);
+}
+
+@media (max-width: 599px) {
+  .content-card :deep(.q-table th),
+  .content-card :deep(.q-table td) {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
 }
 
 .editable-cell {

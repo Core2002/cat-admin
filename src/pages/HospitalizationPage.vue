@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="app-page">
     <div class="text-h5 text-weight-bold q-mb-md">出入院管理</div>
 
     <q-banner

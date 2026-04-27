@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="app-page">
     <!-- 加载状态 -->
     <q-inner-loading :showing="loading" label="加载中..." />
 
@@ -795,5 +795,14 @@ onMounted(() => {
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+@media (max-width: 599px) {
+  .text-h4 {
+    font-size: 1.6rem;
+  }
+  .text-h5 {
+    font-size: 1.2rem;
+  }
 }
 </style>

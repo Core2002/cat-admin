@@ -37,3 +37,20 @@
     transition: none !important;
   }
 }
+
+// 全站页面容器响应式基线
+.app-page {
+  padding: 16px;
+}
+
+@media (max-width: 1023px) {
+  .app-page {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 599px) {
+  .app-page {
+    padding: 8px;
+  }
+}

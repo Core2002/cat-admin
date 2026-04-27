@@ -1,8 +1,8 @@
 <template>
   <q-layout view="hHh lpR fFf">
     <q-page-container>
-      <q-page class="flex flex-center bg-grey-2">
-        <q-card class="q-pa-lg" style="min-width: 350px; max-width: 90vw">
+      <q-page class="app-page flex flex-center bg-grey-2">
+        <q-card class="q-pa-lg login-card">
           <q-card-section class="text-center">
             <q-icon name="pets" size="64px" color="primary" />
             <q-item-label class="text-h5 q-mt-md">猫咪管理系统</q-item-label>
@@ -72,7 +72,7 @@
 
         <!-- 注册对话框 -->
         <q-dialog v-model="registerDialog" persistent>
-          <q-card style="min-width: 350px; max-width: 90vw">
+          <q-card class="register-card">
             <q-card-section class="row items-center bg-primary text-white">
               <q-item-label class="text-h6 text-white">注册新账户</q-item-label>
               <q-space />
@@ -188,3 +188,10 @@ async function onRegisterSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.login-card,
+.register-card {
+  width: min(420px, 92vw);
+}
+</style>

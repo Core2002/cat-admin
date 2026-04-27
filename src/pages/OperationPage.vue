@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="app-page">
     <!-- 加载状态 -->
     <q-inner-loading :showing="loading">
       <q-spinner-gears size="50px" color="primary" />
@@ -12,18 +12,55 @@
         <q-icon name="dashboard_customize" class="q-mr-sm" />
         操作台
       </div>
+      <q-banner rounded class="bg-blue-1 text-blue-10 q-mb-md">
+        <div class="row items-center q-col-gutter-sm">
+          <div class="col-auto">
+            <q-icon name="place" />
+            当前设施：<span class="text-weight-bold">{{ selectedSiteLabel }}</span>
+          </div>
+          <div class="col-auto">
+            <q-icon name="pets" />
+            当前猫咪：<span class="text-weight-bold">{{ selectedCatLabel }}</span>
+          </div>
+          <div class="col-auto">
+            <q-btn flat dense size="sm" icon="restart_alt" label="清空选择" @click="onTreeSelect(null)" />
+          </div>
+        </div>
+      </q-banner>
 
       <!-- 选择区域：树形选择器 -->
       <q-card class="q-mb-lg">
         <q-card-section>
-          <q-item-label header class="q-pa-none">
-            <q-icon name="account_tree" class="q-mr-sm" />
-            选择工作地点和猫咪
-          </q-item-label>
+          <div class="row items-center q-col-gutter-sm">
+            <div class="col">
+              <q-item-label header class="q-pa-none">
+                <q-icon name="account_tree" class="q-mr-sm" />
+                选择工作地点和猫咪
+              </q-item-label>
+            </div>
+            <div class="col-auto">
+              <q-btn flat dense size="sm" icon="unfold_more" label="展开全部" @click="expandAllSites" />
+            </div>
+            <div class="col-auto">
+              <q-btn flat dense size="sm" icon="unfold_less" label="收起全部" @click="collapseAllSites" />
+            </div>
+          </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
+          <q-input
+            v-model="treeFilter"
+            outlined
+            dense
+            clearable
+            class="q-mb-sm"
+            placeholder="搜索设施或猫咪"
+          >
+            <template v-slot:prepend>
+              <q-icon name="search" />
+            </template>
+          </q-input>
           <q-tree
-            :nodes="treeNodes"
+            :nodes="filteredTreeNodes"
             node-key="id"
             label-key="label"
             :selected="treeSelected"
@@ -59,9 +96,9 @@
               </q-item>
             </template>
           </q-tree>
-          <q-item v-if="treeNodes.length === 0" class="text-grey">
+          <q-item v-if="filteredTreeNodes.length === 0" class="text-grey">
             <q-item-section class="text-center">
-              <q-item-label caption>暂无设施数据</q-item-label>
+              <q-item-label caption>{{ treeNodes.length === 0 ? '暂无设施数据' : '没有匹配的搜索结果' }}</q-item-label>
             </q-item-section>
           </q-item>
         </q-card-section>
@@ -74,9 +111,10 @@
         </q-inner-loading>
 
         <template v-if="siteDetail">
-          <q-card-section horizontal>
-            <!-- 左侧：基本信息 -->
-            <q-card-section class="q-pa-md" style="min-width: 200px">
+          <q-card-section class="q-pa-md">
+            <div class="row q-col-gutter-md">
+              <!-- 左侧：基本信息 -->
+              <div class="col-12 col-md-4">
               <q-item class="q-pa-none">
                 <q-item-section avatar>
                   <q-avatar size="50px" color="primary" text-color="white" icon="domain" />
@@ -101,57 +139,61 @@
                 </q-item-section>
                 <q-item-label class="text-body2">{{ siteDetail.site_admin_phone_number || '未记录' }}</q-item-label>
               </q-item>
-            </q-card-section>
+              </div>
 
-            <q-separator vertical />
-
-            <!-- 右侧：状态和近期记录 -->
-            <q-card-section class="q-pa-md col">
+              <!-- 右侧：状态和近期记录 -->
+              <div class="col-12 col-md-8">
               <!-- 状态指标 -->
               <q-item-label header class="q-pa-none q-mb-sm">最近操作时间</q-item-label>
               <q-card flat bordered class="q-mb-md">
-                <q-card-section class="q-pa-none">
-                  <q-item class="q-pa-sm">
-                    <q-item-section class="text-center">
-                      <q-item-label>
-                        <q-icon name="restaurant" color="primary" size="28px" />
-                      </q-item-label>
-                      <q-item-label class="text-caption">{{ siteFsm?.last_feed_time ? formatDateTime(siteFsm.last_feed_time) : '-' }}</q-item-label>
-                      <q-item-label caption>喂食</q-item-label>
-                    </q-item-section>
-                    <q-separator vertical />
-                    <q-item-section class="text-center">
-                      <q-item-label>
-                        <q-icon name="water_drop" color="info" size="28px" />
-                      </q-item-label>
-                      <q-item-label class="text-caption">{{ siteFsm?.last_give_water_time ? formatDateTime(siteFsm.last_give_water_time) : '-' }}</q-item-label>
-                      <q-item-label caption>喂水</q-item-label>
-                    </q-item-section>
-                    <q-separator vertical />
-                    <q-item-section class="text-center">
-                      <q-item-label>
-                        <q-icon name="cleaning_services" color="positive" size="28px" />
-                      </q-item-label>
-                      <q-item-label class="text-caption">{{ siteFsm?.last_disinfect_time ? formatDateTime(siteFsm.last_disinfect_time) : '-' }}</q-item-label>
-                      <q-item-label caption>消毒</q-item-label>
-                    </q-item-section>
-                    <q-separator vertical />
-                    <q-item-section class="text-center">
-                      <q-item-label>
-                        <q-icon name="sports_esports" color="secondary" size="28px" />
-                      </q-item-label>
-                      <q-item-label class="text-caption">{{ siteFsm?.last_play_time ? formatDateTime(siteFsm.last_play_time) : '-' }}</q-item-label>
-                      <q-item-label caption>逗猫</q-item-label>
-                    </q-item-section>
-                    <q-separator vertical />
-                    <q-item-section class="text-center">
-                      <q-item-label>
-                        <q-icon name="delete_outline" color="accent" size="28px" />
-                      </q-item-label>
-                      <q-item-label class="text-caption">{{ siteFsm?.last_clean_litter_time ? formatDateTime(siteFsm.last_clean_litter_time) : '-' }}</q-item-label>
-                      <q-item-label caption>清理猫砂</q-item-label>
-                    </q-item-section>
-                  </q-item>
+                <q-card-section class="q-pa-sm">
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-6 col-sm-4 col-md-4 col-lg-3">
+                      <q-card flat bordered class="site-metric-card">
+                        <q-card-section class="text-center q-pa-sm">
+                          <q-icon name="restaurant" color="primary" size="24px" />
+                          <div class="text-caption q-mt-xs">{{ siteFsm?.last_feed_time ? formatDateTime(siteFsm.last_feed_time) : '-' }}</div>
+                          <div class="text-grey-7">喂食</div>
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-4 col-lg-3">
+                      <q-card flat bordered class="site-metric-card">
+                        <q-card-section class="text-center q-pa-sm">
+                          <q-icon name="water_drop" color="info" size="24px" />
+                          <div class="text-caption q-mt-xs">{{ siteFsm?.last_give_water_time ? formatDateTime(siteFsm.last_give_water_time) : '-' }}</div>
+                          <div class="text-grey-7">喂水</div>
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-4 col-lg-3">
+                      <q-card flat bordered class="site-metric-card">
+                        <q-card-section class="text-center q-pa-sm">
+                          <q-icon name="cleaning_services" color="positive" size="24px" />
+                          <div class="text-caption q-mt-xs">{{ siteFsm?.last_disinfect_time ? formatDateTime(siteFsm.last_disinfect_time) : '-' }}</div>
+                          <div class="text-grey-7">消毒</div>
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-4 col-lg-3">
+                      <q-card flat bordered class="site-metric-card">
+                        <q-card-section class="text-center q-pa-sm">
+                          <q-icon name="sports_esports" color="secondary" size="24px" />
+                          <div class="text-caption q-mt-xs">{{ siteFsm?.last_play_time ? formatDateTime(siteFsm.last_play_time) : '-' }}</div>
+                          <div class="text-grey-7">逗猫</div>
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-4 col-lg-3">
+                      <q-card flat bordered class="site-metric-card">
+                        <q-card-section class="text-center q-pa-sm">
+                          <q-icon name="delete_outline" color="accent" size="24px" />
+                          <div class="text-caption q-mt-xs">{{ siteFsm?.last_clean_litter_time ? formatDateTime(siteFsm.last_clean_litter_time) : '-' }}</div>
+                          <div class="text-grey-7">清理猫砂</div>
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                  </div>
                 </q-card-section>
               </q-card>
 
@@ -175,7 +217,8 @@
                   <q-item-label caption>暂无操作记录</q-item-label>
                 </q-item-section>
               </q-item>
-            </q-card-section>
+              </div>
+            </div>
           </q-card-section>
         </template>
       </q-card>
@@ -352,6 +395,13 @@
           <div class="text-caption text-grey q-mb-md">
             点击下方按钮快速记录日常操作
           </div>
+          <q-banner
+            v-if="!selectedSite || !selectedCat"
+            rounded
+            class="bg-grey-2 text-grey-8 q-mb-md"
+          >
+            先在上方树中选择设施和猫咪后，可使用全部快捷操作（仅设施操作可在未选猫咪时使用）。
+          </q-banner>
 
           <!-- 设施操作 -->
           <div class="text-subtitle2 text-grey q-mb-sm">设施操作</div>
@@ -829,6 +879,7 @@ interface TreeNode {
 
 const treeSelected = ref<string | null>(null);
 const treeExpanded = ref<string[]>([]);
+const treeFilter = ref('');
 
 // 构建 cat_id -> site_id 的映射（只记录有效的 site_id）
 const catSiteMap = computed(() => {
@@ -891,6 +942,42 @@ const treeNodes = computed<TreeNode[]>(() => {
   }
 
   return nodes;
+});
+
+const filteredTreeNodes = computed<TreeNode[]>(() => {
+  const keyword = treeFilter.value.trim().toLowerCase();
+  if (!keyword) return treeNodes.value;
+
+  const filterNodes = (nodes: TreeNode[]): TreeNode[] => {
+    const result: TreeNode[] = [];
+    for (const node of nodes) {
+      const labelMatched = node.label.toLowerCase().includes(keyword);
+      const children = node.children ? filterNodes(node.children) : [];
+      if (labelMatched || children.length > 0) {
+        if (children.length > 0) {
+          result.push({
+            ...node,
+            children,
+          });
+        } else {
+          result.push({ ...node });
+        }
+      }
+    }
+    return result;
+  };
+
+  return filterNodes(treeNodes.value);
+});
+
+const selectedSiteLabel = computed(() => {
+  if (!selectedSite.value) return '未选择';
+  return sites.value.find((s) => s.site_id === selectedSite.value)?.site_name || `设施 #${selectedSite.value}`;
+});
+
+const selectedCatLabel = computed(() => {
+  if (!selectedCat.value) return '未选择';
+  return cats.value.find((c) => c.cat_id === selectedCat.value)?.cat_name || `猫咪 #${selectedCat.value}`;
 });
 
 // 今日记录
@@ -1001,6 +1088,16 @@ function findNodeById(id: string, nodes?: TreeNode[]): TreeNode | null {
 // 树形展开处理
 function onTreeExpand(expanded: readonly string[]) {
   treeExpanded.value = [...expanded];
+}
+
+function expandAllSites() {
+  treeExpanded.value = treeNodes.value
+    .filter((n) => n.type === 'site')
+    .map((n) => n.id);
+}
+
+function collapseAllSites() {
+  treeExpanded.value = [];
 }
 
 // 加载设施详细信息
@@ -1640,6 +1737,23 @@ onMounted(() => {
 
   &:disabled {
     opacity: 0.5;
+  }
+}
+
+.site-metric-card {
+  height: 100%;
+}
+
+@media (max-width: 1023px) {
+  .operation-btn {
+    height: 72px;
+  }
+}
+
+@media (max-width: 599px) {
+  .operation-btn {
+    height: 64px;
+    border-radius: 10px;
   }
 }
 </style>

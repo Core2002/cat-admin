@@ -1164,6 +1164,31 @@ onMounted(() => {
     font-size: 12px;
     padding: 6px 8px;
   }
+
+  /* 手机端 q-table grid 模式：让每条数据卡片有清晰间距 */
+  .content-card :deep(.q-table__grid-content) {
+    padding: 8px 4px 12px;
+    gap: 10px;
+  }
+
+  .content-card :deep(.q-table__grid-item) {
+    margin-bottom: 10px;
+  }
+
+  .content-card :deep(.q-table__grid-item-card) {
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+
+  /* 卡片内部字段行增加垂直节奏，避免“贴在一起” */
+  .content-card :deep(.q-table__grid-item-row) {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .content-card :deep(.q-table__grid-item-row:last-child) {
+    border-bottom: none;
+  }
 }
 
 .editable-cell {

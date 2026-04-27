@@ -231,7 +231,8 @@
 
         <template v-if="catDetail">
           <!-- 头部：头像和基本信息 -->
-          <q-card-section horizontal>
+          <q-card-section class="q-pa-md">
+            <div class="row q-col-gutter-md">
             <q-card-section class="col-12 col-md-4 q-pa-md">
               <q-item class="q-pa-none">
                 <q-item-section avatar>
@@ -271,63 +272,60 @@
               </q-item>
             </q-card-section>
 
-            <q-separator vertical />
-
             <!-- 右侧：状态和历史记录 -->
             <q-card-section class="col-12 col-md-8 q-pa-md">
               <!-- 状态指标 -->
               <q-item-label header class="q-pa-none q-mb-sm">当前状态</q-item-label>
               <q-card flat bordered class="q-mb-md">
-                <q-card-section class="q-pa-none">
-                  <q-item class="q-pa-sm">
-                    <!-- 体温 -->
-                    <q-item-section class="text-center">
-                      <q-item-label>
-                        <q-icon
-                          name="thermostat"
-                          :color="catFsm && isTemperatureNormal(catFsm.temperature_c) ? 'positive' : 'negative'"
-                          size="32px"
-                        />
-                      </q-item-label>
-                      <q-item-label class="text-h6">
-                        {{ catFsm?.temperature_c?.toFixed(1) || '-' }}°C
-                      </q-item-label>
-                      <q-item-label caption>体温</q-item-label>
-                      <q-badge
-                        v-if="catFsm"
-                        :color="isTemperatureNormal(catFsm.temperature_c) ? 'positive' : 'negative'"
-                        :label="isTemperatureNormal(catFsm.temperature_c) ? '正常' : '异常'"
-                        class="q-mt-xs"
-                      />
-                    </q-item-section>
-                    <q-separator vertical />
-                    <!-- 体重 -->
-                    <q-item-section class="text-center">
-                      <q-item-label>
-                        <q-icon name="monitor_weight" color="primary" size="32px" />
-                      </q-item-label>
-                      <q-item-label class="text-h6">{{ catFsm?.weight_kg?.toFixed(1) || '-' }}kg</q-item-label>
-                      <q-item-label caption>体重</q-item-label>
-                    </q-item-section>
-                    <q-separator vertical />
-                    <!-- 上次修甲 -->
-                    <q-item-section class="text-center">
-                      <q-item-label>
-                        <q-icon name="content_cut" color="secondary" size="32px" />
-                      </q-item-label>
-                      <q-item-label class="text-body2">{{ catFsm?.trim_nails_time ? formatDateTime(catFsm.trim_nails_time) : '-' }}</q-item-label>
-                      <q-item-label caption>上次修甲</q-item-label>
-                    </q-item-section>
-                  </q-item>
+                <q-card-section class="q-pa-sm">
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12 col-sm-4">
+                      <q-card flat bordered class="status-metric-card">
+                        <q-card-section class="text-center q-pa-sm">
+                          <q-icon
+                            name="thermostat"
+                            :color="catFsm && isTemperatureNormal(catFsm.temperature_c) ? 'positive' : 'negative'"
+                            size="28px"
+                          />
+                          <div class="text-subtitle1 q-mt-xs">{{ catFsm?.temperature_c?.toFixed(1) || '-' }}°C</div>
+                          <div class="text-caption text-grey-7">体温</div>
+                          <q-badge
+                            v-if="catFsm"
+                            :color="isTemperatureNormal(catFsm.temperature_c) ? 'positive' : 'negative'"
+                            :label="isTemperatureNormal(catFsm.temperature_c) ? '正常' : '异常'"
+                            class="q-mt-xs"
+                          />
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                      <q-card flat bordered class="status-metric-card">
+                        <q-card-section class="text-center q-pa-sm">
+                          <q-icon name="monitor_weight" color="primary" size="28px" />
+                          <div class="text-subtitle1 q-mt-xs">{{ catFsm?.weight_kg?.toFixed(1) || '-' }}kg</div>
+                          <div class="text-caption text-grey-7">体重</div>
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                      <q-card flat bordered class="status-metric-card">
+                        <q-card-section class="text-center q-pa-sm">
+                          <q-icon name="content_cut" color="secondary" size="28px" />
+                          <div class="text-caption q-mt-xs">{{ catFsm?.trim_nails_time ? formatDateTime(catFsm.trim_nails_time) : '-' }}</div>
+                          <div class="text-caption text-grey-7">上次修甲</div>
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                  </div>
                 </q-card-section>
               </q-card>
 
               <!-- 近期记录 -->
               <q-item-label header class="q-pa-none q-mb-sm">近期记录</q-item-label>
               <q-card flat bordered>
-                <q-card-section horizontal>
+                <q-card-section class="row q-col-gutter-md">
                   <!-- 近期操作 -->
-                  <q-card-section class="q-pa-sm col-6">
+                  <q-card-section class="q-pa-sm col-12 col-md-6">
                     <q-item-label caption class="q-mb-xs">操作记录</q-item-label>
                     <q-list dense v-if="recentActions.length > 0">
                       <q-item v-for="action in recentActions" :key="action.action_id" class="q-pa-xs">
@@ -349,10 +347,11 @@
                     </q-item>
                   </q-card-section>
 
-                  <q-separator vertical />
+                  <q-separator vertical class="gt-sm" />
+                  <q-separator class="lt-md q-my-sm" />
 
                   <!-- 近期事件 -->
-                  <q-card-section class="q-pa-sm col-6">
+                  <q-card-section class="q-pa-sm col-12 col-md-6">
                     <q-item-label caption class="q-mb-xs">事件记录</q-item-label>
                     <q-list dense v-if="recentEvents.length > 0">
                       <q-item v-for="event in recentEvents" :key="event.event_id" class="q-pa-xs">
@@ -376,6 +375,7 @@
                 </q-card-section>
               </q-card>
             </q-card-section>
+            </div>
           </q-card-section>
         </template>
 
@@ -1741,6 +1741,10 @@ onMounted(() => {
 }
 
 .site-metric-card {
+  height: 100%;
+}
+
+.status-metric-card {
   height: 100%;
 }
 

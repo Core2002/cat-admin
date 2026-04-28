@@ -76,9 +76,19 @@
           <q-card-section>
             <q-form ref="admitFormRef" class="row q-col-gutter-md" @submit.prevent="submitAdmit">
               <div class="col-12 col-md-6">
-                <q-select v-model="admitForm.cat_id" :options="catOptions" emit-value map-options label="猫咪" outlined dense
-                  lazy-rules="ondemand"
-                  :rules="[(v) => !!v || '请选择猫咪']" />
+                <CatSelector
+                  v-model="admitForm.cat_id"
+                  :cats="admitCandidateCats"
+                  :sites="sites"
+                  :cat-site-map="catSiteMapRecord"
+                  label="选择入院猫咪"
+                  helper-text="支持姓名/编号/品种/主人/电话检索，选中后自动联动设施"
+                  :show-tree-mode="false"
+                  default-mode="precise"
+                  :allow-unassigned="true"
+                  :auto-select-site-from-cat="true"
+                  @site-change="onAdmitCatSiteChange"
+                />
               </div>
               <div class="col-12 col-md-6">
                 <q-select v-model="admitForm.site_id" :options="siteOptions" emit-value map-options label="入院设施" outlined dense
@@ -117,8 +127,19 @@
           <q-card-section>
             <q-form class="row q-col-gutter-md" @submit.prevent="submitDischarge">
               <div class="col-12">
-                <q-select v-model="dischargeForm.cat_id" :options="activeRecordOptions" emit-value map-options label="在院猫咪"
-                  outlined dense :rules="[(v) => !!v || '请选择在院记录']" />
+                <CatSelector
+                  v-model="dischargeForm.cat_id"
+                  :cats="dischargeCandidateCats"
+                  :sites="sites"
+                  :cat-site-map="catSiteMapRecord"
+                  label="选择出院猫咪（仅在院）"
+                  helper-text="仅显示当前在院猫咪，支持姓名/编号/品种/主人/电话搜索"
+                  :show-tree-mode="false"
+                  default-mode="precise"
+                  :allow-unassigned="false"
+                  :auto-select-site-from-cat="true"
+                  @site-change="onDischargeCatSiteChange"
+                />
               </div>
               <div class="col-12 col-md-6">
                 <q-input v-model.number="dischargeForm.final_temperature_c" type="number" label="出院体温(可选)" outlined dense />
@@ -177,6 +198,7 @@ import { useQuasar } from 'quasar';
 import { catApi, catFsmApi, hospitalizationApi, siteApi, type Cat, type CatCreate, type CatFSM, type Site, type SiteCreate } from 'src/api';
 import { useAuthStore } from 'src/stores/auth';
 import type { QForm } from 'quasar';
+import CatSelector from 'src/components/CatSelector.vue';
 
 const $q = useQuasar();
 const authStore = useAuthStore();
@@ -188,6 +210,7 @@ const admitFormRef = ref<QForm | null>(null);
 const cats = ref<Cat[]>([]);
 const sites = ref<Site[]>([]);
 const activeRecords = ref<CatFSM[]>([]);
+const allCatFsms = ref<CatFSM[]>([]);
 const submittingAdmit = ref(false);
 const submittingDischarge = ref(false);
 const submittingInitSite = ref(false);
@@ -225,19 +248,19 @@ const initCatForm = ref<CatCreate>({
   master_phone_number: '',
 });
 
-const admittedCatIds = computed(() => new Set(activeRecords.value.map((r) => r.cat_id)));
-const catOptions = computed(() =>
-  cats.value
-    .filter((c) => !admittedCatIds.value.has(c.cat_id))
-    .map((c) => ({ label: `${c.cat_name} (#${c.cat_id})`, value: c.cat_id }))
-);
+const admittedCatIds = computed(() => new Set(activeRecords.value.map((r) => Number(r.cat_id))));
+const admitCandidateCats = computed(() => cats.value.filter((c) => !admittedCatIds.value.has(Number(c.cat_id))));
+const catSiteMapRecord = computed<Record<number, number | null>>(() => {
+  const record: Record<number, number | null> = {};
+  allCatFsms.value.forEach((fsm) => {
+    const catId = Number(fsm.cat_id);
+    const siteId = Number(fsm.site_id);
+    record[catId] = siteId > 0 ? siteId : null;
+  });
+  return record;
+});
 const siteOptions = computed(() => sites.value.map((s) => ({ label: `${s.site_name} (#${s.site_id})`, value: s.site_id })));
-const activeRecordOptions = computed(() =>
-  activeRecords.value.map((r) => ({
-    label: `${getCatName(r.cat_id)} @ ${getSiteName(r.site_id)}`,
-    value: r.cat_id,
-  }))
-);
+const dischargeCandidateCats = computed(() => cats.value.filter((c) => admittedCatIds.value.has(Number(c.cat_id))));
 
 function getCatName(catId: number) {
   return cats.value.find((c) => c.cat_id === catId)?.cat_name || `猫咪#${catId}`;
@@ -248,9 +271,11 @@ function getSiteName(siteId: number) {
 }
 
 async function loadBaseData() {
-  const [catsRes, sitesRes] = await Promise.all([catApi.list(1, 100), siteApi.list(1, 100)]);
+  const [catsRes, sitesRes, fsmRes] = await Promise.all([catApi.list(1, 100), siteApi.list(1, 100), catFsmApi.list(1, 100)]);
   cats.value = catsRes.data || [];
   sites.value = sitesRes.data || [];
+  allCatFsms.value = fsmRes.data || [];
+  activeRecords.value = allCatFsms.value.filter((f) => f.site_id > 0);
 }
 
 async function createInitialSite() {
@@ -296,11 +321,30 @@ async function createInitialCat() {
 
 async function loadActiveRecords() {
   const fsmRes = await catFsmApi.list(1, 100);
-  activeRecords.value = (fsmRes.data || []).filter((f) => f.site_id > 0);
+  allCatFsms.value = fsmRes.data || [];
+  activeRecords.value = allCatFsms.value.filter((f) => Number(f.site_id) > 0);
+}
+
+function onAdmitCatSiteChange(siteId: number | null) {
+  if (siteId && siteId > 0) {
+    admitForm.value.site_id = siteId;
+  }
+}
+
+function onDischargeCatSiteChange() {
+  // 出院流程当前不需要额外联动字段，保留回调便于后续扩展
 }
 
 async function submitAdmit() {
-  if (!admitForm.value.cat_id || !admitForm.value.site_id || !authStore.user?.id) return;
+  if (!admitForm.value.cat_id) {
+    $q.notify({ type: 'warning', message: '请选择猫咪' });
+    return;
+  }
+  if (!admitForm.value.site_id) {
+    $q.notify({ type: 'warning', message: '请选择入院设施' });
+    return;
+  }
+  if (!authStore.user?.id) return;
   submittingAdmit.value = true;
   try {
     await hospitalizationApi.admit({
@@ -316,7 +360,7 @@ async function submitAdmit() {
     admitForm.value.admission_reason = '';
     admitForm.value.admission_note = '';
     admitFormRef.value?.resetValidation();
-    await loadActiveRecords();
+    await loadBaseData();
   } catch (error) {
     $q.notify({ type: 'negative', message: error instanceof Error ? error.message : '入院失败' });
   } finally {
@@ -358,7 +402,7 @@ async function submitDischarge() {
     dischargeForm.value.discharge_note = '';
     dischargeForm.value.final_temperature_c = null;
     dischargeForm.value.final_weight_kg = null;
-    await loadActiveRecords();
+    await loadBaseData();
   } catch (error) {
     $q.notify({ type: 'negative', message: error instanceof Error ? error.message : '出院失败' });
   } finally {
@@ -368,7 +412,7 @@ async function submitDischarge() {
 
 onMounted(async () => {
   try {
-    await Promise.all([loadBaseData(), loadActiveRecords()]);
+    await loadBaseData();
   } catch {
     $q.notify({ type: 'negative', message: '初始化出入院页面失败' });
   }

@@ -15,18 +15,28 @@
     </q-banner>
 
     <template v-if="!loading && !error">
+      <div class="dashboard-shell">
       <!-- 顶部工具栏 -->
-      <q-toolbar class="q-px-none q-mb-md">
-        <q-toolbar-title class="text-h5 text-weight-bold">数据看板</q-toolbar-title>
-        <q-btn flat round icon="refresh" @click="loadData" :loading="loading">
-          <q-tooltip>刷新数据</q-tooltip>
-        </q-btn>
+      <q-toolbar class="q-px-none q-mb-md dashboard-toolbar">
+        <q-toolbar-title>
+          <div class="text-h5 text-weight-bold">数据看板</div>
+          <div class="text-caption text-grey-7">聚焦关键指标与近期动态，减少来回跳转和操作负担</div>
+        </q-toolbar-title>
+        <div class="row items-center no-wrap q-gutter-sm">
+          <q-btn unelevated color="primary" icon="table_chart" label="数据管理" to="/data" />
+          <q-btn flat round icon="refresh" @click="loadData" :loading="loading">
+            <q-tooltip>刷新数据</q-tooltip>
+          </q-btn>
+        </div>
       </q-toolbar>
+      <div class="text-caption text-grey q-mb-md">
+        最后更新：{{ lastUpdated }}
+      </div>
 
       <!-- 统计卡片 -->
       <div class="row q-col-gutter-md q-mb-md">
         <div class="col-6 col-md-3">
-          <q-card class="stat-card cursor-pointer" @click="$router.push('/data')">
+          <q-card class="stat-card cursor-pointer" flat bordered @click="$router.push('/data')">
             <q-card-section class="row items-center">
               <q-icon name="pets" color="primary" size="42px" class="q-mr-md" />
               <div>
@@ -37,7 +47,7 @@
           </q-card>
         </div>
         <div class="col-6 col-md-3">
-          <q-card class="stat-card cursor-pointer" @click="$router.push('/data')">
+          <q-card class="stat-card cursor-pointer" flat bordered @click="$router.push('/data')">
             <q-card-section class="row items-center">
               <q-icon name="domain" color="green" size="42px" class="q-mr-md" />
               <div>
@@ -48,7 +58,7 @@
           </q-card>
         </div>
         <div class="col-6 col-md-3">
-          <q-card class="stat-card cursor-pointer" @click="$router.push('/data')">
+          <q-card class="stat-card cursor-pointer" flat bordered @click="$router.push('/data')">
             <q-card-section class="row items-center">
               <q-icon name="medical_services" color="orange" size="42px" class="q-mr-md" />
               <div>
@@ -59,7 +69,7 @@
           </q-card>
         </div>
         <div class="col-6 col-md-3">
-          <q-card class="stat-card cursor-pointer" @click="$router.push('/data')">
+          <q-card class="stat-card cursor-pointer" flat bordered @click="$router.push('/data')">
             <q-card-section class="row items-center">
               <q-icon name="warning" color="red" size="42px" class="q-mr-md" />
               <div>
@@ -71,11 +81,12 @@
         </div>
       </div>
 
+      <q-item-label header class="text-h6 q-px-none q-pb-sm">结构化洞察</q-item-label>
       <!-- 图表区域 -->
       <div class="row q-col-gutter-md q-mb-md">
         <!-- 猫咪品种分布 -->
         <div class="col-12 col-md-4">
-          <q-card>
+          <q-card flat bordered class="panel-card">
             <q-card-section>
               <q-item-label header class="text-h6 q-pa-none">品种分布</q-item-label>
             </q-card-section>
@@ -109,7 +120,7 @@
 
         <!-- 性别比例 -->
         <div class="col-12 col-md-4">
-          <q-card>
+          <q-card flat bordered class="panel-card">
             <q-card-section>
               <q-item-label header class="text-h6 q-pa-none">性别比例</q-item-label>
             </q-card-section>
@@ -145,7 +156,7 @@
 
         <!-- 操作类型统计 -->
         <div class="col-12 col-md-4">
-          <q-card>
+          <q-card flat bordered class="panel-card">
             <q-card-section>
               <q-item-label header class="text-h6 q-pa-none">操作类型统计</q-item-label>
             </q-card-section>
@@ -174,17 +185,18 @@
         </div>
       </div>
 
+      <q-item-label header class="text-h6 q-px-none q-pb-sm">近期动态</q-item-label>
       <!-- 最近活动 -->
       <div class="row q-col-gutter-md">
         <!-- 最近操作记录 -->
         <div class="col-12 col-md-6">
-          <q-card>
+          <q-card flat bordered class="panel-card">
             <q-card-section class="row items-center justify-between q-pb-none">
               <q-item-label header class="text-h6 q-pa-none">最近操作记录</q-item-label>
               <q-btn flat dense color="primary" label="查看更多" to="/data" />
             </q-card-section>
             <q-separator />
-            <q-list separator v-if="recentActions.length > 0">
+            <q-list separator v-if="recentActions.length > 0" class="activity-list">
               <q-item
                 v-for="action in recentActions"
                 :key="action.action_id"
@@ -217,13 +229,13 @@
 
         <!-- 最近事件记录 -->
         <div class="col-12 col-md-6">
-          <q-card>
+          <q-card flat bordered class="panel-card">
             <q-card-section class="row items-center justify-between q-pb-none">
               <q-item-label header class="text-h6 q-pa-none">最近事件记录</q-item-label>
               <q-btn flat dense color="primary" label="查看更多" to="/data" />
             </q-card-section>
             <q-separator />
-            <q-list separator v-if="recentEvents.length > 0">
+            <q-list separator v-if="recentEvents.length > 0" class="activity-list">
               <q-item
                 v-for="event in recentEvents"
                 :key="event.event_id"
@@ -257,9 +269,10 @@
       </div>
 
       <!-- 状态监控 -->
+      <q-item-label header class="text-h6 q-px-none q-pb-sm q-pt-sm">风险提醒</q-item-label>
       <q-slide-transition>
         <div v-if="alertCats.length > 0" class="q-mt-md">
-          <q-card class="bg-orange-1">
+          <q-card class="bg-orange-1 panel-card" flat bordered>
             <q-card-section>
               <q-item-label header class="text-h6 text-orange-8 q-pa-none">
                 <q-icon name="notification_important" class="q-mr-sm" />
@@ -303,6 +316,7 @@
             <q-btn color="primary" label="前往数据管理" to="/data" class="q-mt-md" />
           </q-card>
         </div>
+      </div>
       </div>
     </template>
 
@@ -405,6 +419,7 @@ import { catApi, siteApi, catActionApi, catEventApi, catFsmApi, type Cat, type C
 const $q = useQuasar();
 const loading = ref(true);
 const error = ref<string | null>(null);
+const lastUpdated = ref('-');
 
 // 详情对话框
 const detailDialog = ref<{
@@ -765,6 +780,13 @@ async function loadData() {
     ).length;
 
     console.log('统计数据：', stats.value);
+    lastUpdated.value = new Date().toLocaleString('zh-CN', {
+      hour12: false,
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   } catch (e) {
     console.error('加载数据失败：', e);
     error.value = e instanceof Error ? e.message : '加载数据失败，请重试';
@@ -785,16 +807,40 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .stat-card {
-  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 110px;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--q-primary);
   }
 }
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+.dashboard-shell {
+  padding-bottom: 12px;
+}
+
+.dashboard-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.panel-card {
+  border-radius: 12px;
+}
+
+.activity-list {
+  max-height: 360px;
+  overflow: auto;
 }
 
 @media (max-width: 599px) {
@@ -803,6 +849,20 @@ onMounted(() => {
   }
   .text-h5 {
     font-size: 1.2rem;
+  }
+
+  .dashboard-toolbar {
+    position: static;
+    background: transparent;
+    border-bottom: 0;
+  }
+
+  .stat-card {
+    min-height: 96px;
+  }
+
+  .activity-list {
+    max-height: 300px;
   }
 }
 </style>

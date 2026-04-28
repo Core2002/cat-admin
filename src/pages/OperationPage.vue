@@ -23,84 +23,62 @@
             当前猫咪：<span class="text-weight-bold">{{ selectedCatLabel }}</span>
           </div>
           <div class="col-auto">
-            <q-btn flat dense size="sm" icon="restart_alt" label="清空选择" @click="onTreeSelect(null)" />
+            <q-btn flat dense size="sm" icon="restart_alt" label="清空选择" @click="clearSelection" />
           </div>
         </div>
       </q-banner>
 
-      <!-- 选择区域：树形选择器 -->
+      <!-- 选择区域：设施 + 猫咪精准选择器 -->
       <q-card class="q-mb-lg">
         <q-card-section>
           <div class="row items-center q-col-gutter-sm">
             <div class="col">
               <q-item-label header class="q-pa-none">
-                <q-icon name="account_tree" class="q-mr-sm" />
+                <q-icon name="pets" class="q-mr-sm" />
                 选择工作地点和猫咪
               </q-item-label>
-            </div>
-            <div class="col-auto">
-              <q-btn flat dense size="sm" icon="unfold_more" label="展开全部" @click="expandAllSites" />
-            </div>
-            <div class="col-auto">
-              <q-btn flat dense size="sm" icon="unfold_less" label="收起全部" @click="collapseAllSites" />
             </div>
           </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
-          <q-input
-            v-model="treeFilter"
-            outlined
-            dense
-            clearable
-            class="q-mb-sm"
-            placeholder="搜索设施或猫咪"
-          >
-            <template v-slot:prepend>
-              <q-icon name="search" />
-            </template>
-          </q-input>
-          <q-tree
-            :nodes="filteredTreeNodes"
-            node-key="id"
-            label-key="label"
-            :selected="treeSelected"
-            :expanded="treeExpanded"
-            @update:selected="onTreeSelect"
-            @update:expanded="onTreeExpand"
-            selected-color="primary"
-            class="q-mt-sm"
-          >
-            <template v-slot:default-header="prop">
-              <q-item class="full-width q-pa-xs" dense>
-                <q-item-section avatar class="q-pr-sm">
-                  <q-avatar
-                    :color="prop.node.type === 'site' ? 'primary' : 'secondary'"
-                    text-color="white"
-                    size="32px"
-                  >
-                    <q-icon :name="prop.node.type === 'site' ? 'domain' : 'pets'" size="18px" />
-                  </q-avatar>
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label class="text-weight-medium">{{ prop.node.label }}</q-item-label>
-                  <q-item-label caption v-if="prop.node.type === 'cat' && prop.node.catInfo">
-                    {{ prop.node.catInfo.cat_type }} · {{ prop.node.catInfo.cat_gender }}
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side v-if="prop.node.type === 'cat' && prop.node.catInfo?.cat_gender">
-                  <q-badge
-                    :color="prop.node.catInfo.cat_gender === '公' ? 'blue' : 'pink'"
-                    :label="prop.node.catInfo.cat_gender"
-                  />
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-tree>
-          <q-item v-if="filteredTreeNodes.length === 0" class="text-grey">
-            <q-item-section class="text-center">
-              <q-item-label caption>{{ treeNodes.length === 0 ? '暂无设施数据' : '没有匹配的搜索结果' }}</q-item-label>
-            </q-item-section>
-          </q-item>
+          <div class="row q-col-gutter-md selector-stack">
+            <div class="col-12">
+              <q-select
+                v-model="selectedSite"
+                outlined
+                dense
+                clearable
+                emit-value
+                map-options
+                :options="siteSelectorOptions"
+                label="先选设施（设施操作可仅选择设施）"
+                option-value="value"
+                option-label="label"
+                @update:model-value="onSiteChange"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="domain" />
+                </template>
+              </q-select>
+            </div>
+            <div class="col-12">
+              <CatSelector
+                v-model="selectedCat"
+                :cats="cats"
+                :sites="sites"
+                :cat-site-map="catSiteMapRecord"
+                label="再选猫咪（支持姓名/编号/品种/主人/电话搜索）"
+                helper-text="选中猫咪会自动联动设施；仅做设施操作时可不选猫咪"
+                :show-tree-mode="true"
+                default-mode="precise"
+                :allow-unassigned="true"
+                :auto-select-site-from-cat="true"
+                :show-site-filter="false"
+                :site-filter-value="selectedSite"
+                @site-change="onCatSiteChange"
+              />
+            </div>
+          </div>
         </q-card-section>
       </q-card>
 
@@ -400,7 +378,7 @@
             rounded
             class="bg-grey-2 text-grey-8 q-mb-md"
           >
-            先在上方树中选择设施和猫咪后，可使用全部快捷操作（仅设施操作可在未选猫咪时使用）。
+            先在上方选择设施和猫咪后，可使用全部快捷操作（仅设施操作可在未选猫咪时使用）。
           </q-banner>
 
           <!-- 设施操作 -->
@@ -836,6 +814,7 @@ import {
   type SiteAction,
 } from 'src/api';
 import { useAuthStore } from 'src/stores/auth';
+import CatSelector from 'src/components/CatSelector.vue';
 
 const $q = useQuasar();
 const authStore = useAuthStore();
@@ -865,109 +844,17 @@ const siteInfoLoading = ref(false);
 // 所有猫咪 FSM 数据（用于确定猫咪归属设施）
 const allCatFsms = ref<CatFSM[]>([]);
 
-// 树形选择器数据
-interface TreeNode {
-  id: string;
-  label: string;
-  type: 'site' | 'cat';
-  siteId?: number;
-  catId?: number;
-  catInfo?: Cat;
-  children?: TreeNode[];
-  icon?: string;
-}
+const siteSelectorOptions = computed(() => sites.value.map((site) => ({
+  label: site.site_name,
+  value: site.site_id,
+})));
 
-const treeSelected = ref<string | null>(null);
-const treeExpanded = ref<string[]>([]);
-const treeFilter = ref('');
-
-// 构建 cat_id -> site_id 的映射（只记录有效的 site_id）
-const catSiteMap = computed(() => {
-  const map = new Map<number, number>();
+const catSiteMapRecord = computed<Record<number, number | null>>(() => {
+  const map: Record<number, number | null> = {};
   allCatFsms.value.forEach((fsm) => {
-    // 只有 site_id 大于 0 才认为是有效分配
-    if (fsm.site_id && fsm.site_id > 0) {
-      map.set(fsm.cat_id, fsm.site_id);
-    }
+    map[fsm.cat_id] = fsm.site_id > 0 ? fsm.site_id : null;
   });
   return map;
-});
-
-// 构建树形节点
-const treeNodes = computed<TreeNode[]>(() => {
-  const nodes: TreeNode[] = [];
-  const siteIds = new Set(sites.value.map((s) => s.site_id));
-
-  // 为每个设施创建节点
-  sites.value.forEach((site) => {
-    const catsInSite = cats.value.filter((cat) => catSiteMap.value.get(cat.cat_id) === site.site_id);
-
-    nodes.push({
-      id: `site-${site.site_id}`,
-      label: site.site_name,
-      type: 'site',
-      siteId: site.site_id,
-      children: catsInSite.map((cat) => ({
-        id: `cat-${cat.cat_id}`,
-        label: cat.cat_name,
-        type: 'cat' as const,
-        siteId: site.site_id,
-        catId: cat.cat_id,
-        catInfo: cat,
-      })),
-    });
-  });
-
-  // 找出未分配设施的猫咪（包括：无 FSM 记录、FSM 中 site_id 无效、FSM 中 site_id 对应的设施不存在）
-  const unassignedCats = cats.value.filter((cat) => {
-    const siteId = catSiteMap.value.get(cat.cat_id);
-    return !siteId || !siteIds.has(siteId);
-  });
-
-  if (unassignedCats.length > 0) {
-    nodes.push({
-      id: 'site-unassigned',
-      label: '未分配设施',
-      type: 'site',
-      siteId: -1, // 特殊标记
-      children: unassignedCats.map((cat) => ({
-        id: `cat-${cat.cat_id}`,
-        label: cat.cat_name,
-        type: 'cat' as const,
-        siteId: -1,
-        catId: cat.cat_id,
-        catInfo: cat,
-      })),
-    });
-  }
-
-  return nodes;
-});
-
-const filteredTreeNodes = computed<TreeNode[]>(() => {
-  const keyword = treeFilter.value.trim().toLowerCase();
-  if (!keyword) return treeNodes.value;
-
-  const filterNodes = (nodes: TreeNode[]): TreeNode[] => {
-    const result: TreeNode[] = [];
-    for (const node of nodes) {
-      const labelMatched = node.label.toLowerCase().includes(keyword);
-      const children = node.children ? filterNodes(node.children) : [];
-      if (labelMatched || children.length > 0) {
-        if (children.length > 0) {
-          result.push({
-            ...node,
-            children,
-          });
-        } else {
-          result.push({ ...node });
-        }
-      }
-    }
-    return result;
-  };
-
-  return filterNodes(treeNodes.value);
 });
 
 const selectedSiteLabel = computed(() => {
@@ -979,6 +866,7 @@ const selectedCatLabel = computed(() => {
   if (!selectedCat.value) return '未选择';
   return cats.value.find((c) => c.cat_id === selectedCat.value)?.cat_name || `猫咪 #${selectedCat.value}`;
 });
+
 
 // 今日记录
 interface TodayRecord {
@@ -1007,97 +895,63 @@ const eventDialog = ref({
   loading: false,
 });
 
-// 树形选择处理
-function onTreeSelect(nodeId: string | null) {
-  if (!nodeId) {
-    selectedSite.value = null;
-    selectedCat.value = null;
-    catDetail.value = null;
-    catFsm.value = null;
-    recentActions.value = [];
-    recentEvents.value = [];
+function clearSelection() {
+  selectedSite.value = null;
+  selectedCat.value = null;
+  catDetail.value = null;
+  catFsm.value = null;
+  recentActions.value = [];
+  recentEvents.value = [];
+  siteDetail.value = null;
+  siteFsm.value = null;
+  recentSiteActions.value = [];
+}
+
+function onSiteChange(siteId: number | null) {
+  selectedSite.value = siteId;
+  if (!siteId) {
     siteDetail.value = null;
     siteFsm.value = null;
     recentSiteActions.value = [];
+    if (selectedCat.value) {
+      selectedCat.value = null;
+      catDetail.value = null;
+      catFsm.value = null;
+      recentActions.value = [];
+      recentEvents.value = [];
+      $q.notify({
+        type: 'info',
+        message: '已清空猫咪选择，请重新选择',
+        position: 'top',
+      });
+    }
     return;
   }
 
-  if (nodeId === 'site-unassigned') {
-    // 选择了"未分配设施"节点
-    selectedSite.value = null;
-    selectedCat.value = null;
-    catDetail.value = null;
-    catFsm.value = null;
-    recentActions.value = [];
-    recentEvents.value = [];
-    siteDetail.value = null;
-    siteFsm.value = null;
-    recentSiteActions.value = [];
-    return;
+  if (selectedCat.value) {
+    const catSiteId = catSiteMapRecord.value[selectedCat.value] ?? null;
+    if (catSiteId !== siteId) {
+      selectedCat.value = null;
+      catDetail.value = null;
+      catFsm.value = null;
+      recentActions.value = [];
+      recentEvents.value = [];
+      $q.notify({
+        type: 'warning',
+        message: '当前猫咪不属于该设施，已自动清空猫咪选择',
+        position: 'top',
+      });
+    }
   }
 
-  if (nodeId.startsWith('site-')) {
-    // 选择了设施节点
-    const siteId = parseInt(nodeId.replace('site-', ''), 10);
+  void loadSiteInfo();
+}
+
+function onCatSiteChange(siteId: number | null) {
+  if (siteId && siteId > 0) {
     selectedSite.value = siteId;
-    selectedCat.value = null;
-    catDetail.value = null;
-    catFsm.value = null;
-    recentActions.value = [];
-    recentEvents.value = [];
     void loadSiteInfo();
-  } else if (nodeId.startsWith('cat-')) {
-    // 选择了猫咪节点
-    const catId = parseInt(nodeId.replace('cat-', ''), 10);
-    const cat = cats.value.find((c) => c.cat_id === catId);
-    if (cat) {
-      // 从节点获取 siteId
-      const node = findNodeById(nodeId);
-      const nodeSiteId = node?.siteId;
-
-      // 如果是未分配设施的猫咪 (siteId === -1)，不设置设施
-      if (nodeSiteId && nodeSiteId !== -1) {
-        selectedSite.value = nodeSiteId;
-        void loadSiteInfo();
-      } else {
-        selectedSite.value = null;
-        siteDetail.value = null;
-        siteFsm.value = null;
-        recentSiteActions.value = [];
-      }
-
-      selectedCat.value = catId;
-      void loadCatInfo();
-    }
   }
-}
-
-// 查找节点
-function findNodeById(id: string, nodes?: TreeNode[]): TreeNode | null {
-  const searchNodes = nodes || treeNodes.value;
-  for (const node of searchNodes) {
-    if (node.id === id) return node;
-    if (node.children) {
-      const found = findNodeById(id, node.children);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-// 树形展开处理
-function onTreeExpand(expanded: readonly string[]) {
-  treeExpanded.value = [...expanded];
-}
-
-function expandAllSites() {
-  treeExpanded.value = treeNodes.value
-    .filter((n) => n.type === 'site')
-    .map((n) => n.id);
-}
-
-function collapseAllSites() {
-  treeExpanded.value = [];
 }
 
 // 加载设施详细信息
@@ -1137,7 +991,7 @@ async function loadSiteInfo() {
 
 // 加载猫咪详细信息
 async function loadCatInfo() {
-  if (!selectedCat.value || !selectedSite.value) {
+  if (!selectedCat.value) {
     catDetail.value = null;
     catFsm.value = null;
     recentActions.value = [];
@@ -1147,17 +1001,15 @@ async function loadCatInfo() {
 
   catInfoLoading.value = true;
   try {
-    // 并行加载基本信息、FSM 状态、历史操作和事件
-    const [cat, fsmList, actions, events] = await Promise.all([
+    // 并行加载基本信息、历史操作和事件
+    const [cat, actions, events] = await Promise.all([
       catApi.get(selectedCat.value),
-      catFsmApi.getBySite(selectedSite.value),
       catActionApi.getByCat(selectedCat.value),
       catEventApi.getByCat(selectedCat.value),
     ]);
 
     catDetail.value = cat;
-    // 从 FSM 列表中筛选出当前猫咪的记录
-    catFsm.value = fsmList.find((f) => f.cat_id === selectedCat.value) || null;
+    catFsm.value = allCatFsms.value.find((f) => f.cat_id === selectedCat.value) || null;
     // 按时间降序排序后取最近 5 条
     recentActions.value = actions
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -1698,8 +1550,6 @@ async function loadData() {
     if (sites.value.length > 0) {
       const firstSiteId = sites.value[0]!.site_id;
       selectedSite.value = firstSiteId;
-      treeSelected.value = `site-${firstSiteId}`;
-      treeExpanded.value = [`site-${firstSiteId}`];
       await loadSiteInfo();
     }
   } catch (error) {
@@ -1746,6 +1596,10 @@ onMounted(() => {
 
 .status-metric-card {
   height: 100%;
+}
+
+.selector-stack {
+  align-items: flex-start;
 }
 
 @media (max-width: 1023px) {

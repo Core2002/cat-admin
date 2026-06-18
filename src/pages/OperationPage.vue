@@ -689,11 +689,15 @@
               color="primary"
               icon="refresh"
               label="刷新"
+              :loading="todayRecordsLoading"
               @click="loadTodayRecords"
             />
           </div>
         </q-card-section>
         <q-separator />
+        <q-inner-loading :showing="todayRecordsLoading">
+          <q-spinner-gears size="36px" color="primary" />
+        </q-inner-loading>
         <q-card-section v-if="todayRecords.length > 0">
           <q-list separator>
             <q-item v-for="record in todayRecords" :key="record.id">
@@ -879,6 +883,7 @@ interface TodayRecord {
   color: string;
 }
 const todayRecords = ref<TodayRecord[]>([]);
+const todayRecordsLoading = ref(false);
 
 // 测体温对话框
 const temperatureDialog = ref({
@@ -1178,7 +1183,12 @@ function quickAction(action: string) {
           position: 'top',
         });
 
-        await loadTodayRecords();
+        // 刷新相关面板数据
+        if (isFacilityAction) {
+          await Promise.all([loadSiteInfo(), loadTodayRecords()]);
+        } else {
+          await Promise.all([loadCatInfo(), loadTodayRecords()]);
+        }
       } catch (error) {
         console.error('操作失败：', error);
         $q.notify({
@@ -1242,7 +1252,7 @@ function openWeightDialog() {
           position: 'top',
         });
 
-        await loadTodayRecords();
+        await Promise.all([loadCatInfo(), loadTodayRecords()]);
       } catch (error) {
         console.error('记录体重失败:', error);
         $q.notify({
@@ -1278,7 +1288,7 @@ async function submitTemperature() {
     });
 
     temperatureDialog.value.show = false;
-    await loadTodayRecords();
+    await Promise.all([loadCatInfo(), loadTodayRecords()]);
   } catch (error) {
     console.error('记录体温失败:', error);
     $q.notify({
@@ -1328,6 +1338,15 @@ function getEventPlaceholder(type: string) {
 async function submitEvent() {
   if (!selectedCat.value || !selectedSite.value) return;
 
+  if (!eventDialog.value.detail.trim()) {
+    $q.notify({
+      type: 'warning',
+      message: '请填写事件详细说明',
+      position: 'top',
+    });
+    return;
+  }
+
   eventDialog.value.loading = true;
   try {
     await catEventApi.create({
@@ -1346,7 +1365,7 @@ async function submitEvent() {
     });
 
     eventDialog.value.show = false;
-    await loadTodayRecords();
+    await Promise.all([loadCatInfo(), loadTodayRecords()]);
   } catch (error) {
     console.error('记录事件失败：', error);
     $q.notify({
@@ -1371,6 +1390,12 @@ function parseDate(timeStr: string): Date {
 
 // 加载今日记录
 async function loadTodayRecords() {
+  if (!selectedSite.value && !selectedCat.value) {
+    todayRecords.value = [];
+    return;
+  }
+
+  todayRecordsLoading.value = true;
   try {
     // 使用本地时区的日期范围
     const now = new Date();
@@ -1448,6 +1473,8 @@ async function loadTodayRecords() {
     );
   } catch (error) {
     console.error('加载今日记录失败：', error);
+  } finally {
+    todayRecordsLoading.value = false;
   }
 }
 
